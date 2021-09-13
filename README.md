@@ -9,6 +9,11 @@ Refers to [docs](https://housepower.github.io/clickhouse_sinker/dev/introduction
 <br>
 
 ## Imagine process
-##### Pmacctd --> Kafka --> ClickHouse_Sinker(ipaddress handle, add "ip_src_country" and "ip_dst_country" field)
+##### Pmacctd --> Kafka --> ClickHouse_Sinker (ipaddress handle, add "ip_src_country" and "ip_dst_country" field)
 
 ## Still under development
+
+## Quick Start
+configuration new option "geoipHandle", default value is false
+
+`"geoipHandle": true`
