@@ -145,6 +145,7 @@ type TaskConfig struct {
 	FlushInterval int    `json:"flushInterval,omitempty"`
 	BufferSize    int    `json:"bufferSize,omitempty"`
 	TimeZone      string `json:"timezone"`
+	GeoipHandle   bool
 }
 
 const (
@@ -153,6 +154,7 @@ const (
 	maxFlushInterval          = 600
 	defaultFlushInterval      = 5
 	defaultTimeZone           = "Local"
+	defaultGeoipHandle        = false
 	defaultLogLevel           = "info"
 	defaultKerberosConfigPath = "/etc/krb5.conf"
 	defaultMaxOpenConns       = 1
@@ -235,6 +237,10 @@ func (cfg *Config) Normallize() (err error) {
 		}
 		if taskCfg.TimeZone == "" {
 			taskCfg.TimeZone = defaultTimeZone
+		}
+		// if GeoipHandle not set, don't open it
+		if !taskCfg.GeoipHandle {
+			taskCfg.GeoipHandle = defaultGeoipHandle
 		}
 		if taskCfg.DynamicSchema.Enable {
 			if taskCfg.Parser != "fastjson" {

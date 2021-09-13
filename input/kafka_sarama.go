@@ -19,6 +19,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"crypto/sha512"
+	"fmt"
 	"hash"
 	"strings"
 	"time"
@@ -73,6 +74,7 @@ func (h MyConsumerGroupHandler) Cleanup(_ sarama.ConsumerGroupSession) error {
 }
 
 func (h MyConsumerGroupHandler) ConsumeClaim(sess sarama.ConsumerGroupSession, claim sarama.ConsumerGroupClaim) error {
+	util.Logger.Info(fmt.Sprintf("GeoipHandlestatus: %v", h.k.taskCfg.GeoipHandle))
 	for msg := range claim.Messages() {
 		h.k.putFn(model.InputMessage{
 			Topic:     msg.Topic,
