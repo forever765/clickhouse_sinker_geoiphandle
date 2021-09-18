@@ -24,15 +24,16 @@ import (
 	"strings"
 	"time"
 
+	jsonvalue "github.com/Andrew-M-C/go.jsonvalue"
 	"github.com/Shopify/sarama"
-	"github.com/pkg/errors"
-	"github.com/xdg-go/scram"
-	"go.uber.org/zap"
-
 	"github.com/housepower/clickhouse_sinker/config"
+	"github.com/housepower/clickhouse_sinker/ipHandle/entity"
 	"github.com/housepower/clickhouse_sinker/model"
 	"github.com/housepower/clickhouse_sinker/statistics"
 	"github.com/housepower/clickhouse_sinker/util"
+	"github.com/pkg/errors"
+	"github.com/xdg-go/scram"
+	"go.uber.org/zap"
 )
 
 var _ Inputer = (*KafkaSarama)(nil)
@@ -73,9 +74,93 @@ func (h MyConsumerGroupHandler) Cleanup(_ sarama.ConsumerGroupSession) error {
 	return nil
 }
 
+func SearchIP(json_raw *jsonvalue.V) *jsonvalue.V {
+	// handle ip_src and ip_dst
+	objs := []string{"src", "dst"}
+	for _, obj := range objs {
+		ip, _ := json_raw.Get("ip_" + obj)
+		naliRsp := entity.ParseIP(ip.String()).String()
+
+		naliRsp = strings.TrimRight(naliRsp, "]")
+		PureResult := strings.Split(naliRsp, "[")
+
+		var PureResultList []string
+		// PureResult  --->   [220.166.187.228 四川省资阳市简阳市]
+		if len(PureResult) > 1 {
+			PureResultList = strings.Fields(PureResult[1])
+		}
+		LPR := len(PureResultList)
+		loc := "Unknown"
+		isp := "Unknown"
+
+		if LPR == 0 {
+			// if nali return null result, default value is "Unknown"
+		} else if LPR == 1 {
+			// only have location
+			loc = PureResultList[0]
+		} else if LPR > 1 {
+			// 国外的地名和isp可能有空格
+			loc = PureResultList[0]
+			isp = strings.Join(PureResultList[1:], "")
+		} else {
+			util.Logger.Warn(fmt.Sprintf("nali return unknown data: %s, 个数：%v", PureResultList, LPR))
+		}
+		// Replace ... to 局域网
+		if strings.Contains(loc, "同一内部网") || strings.Contains(isp, "同一内部网") {
+			loc = "局域网"
+			isp = "局域网"
+		}
+		if strings.Contains(isp, "]") {
+			isp = strings.TrimRight(isp, "]")
+			// fmt.Println("有漏网之鱼, ] replaced!")
+		}
+		json_raw.SetString(loc).At("loc_" + obj)
+		json_raw.SetString(isp).At("isp_" + obj)
+	}
+	// FinalResult := json_raw.MustMarshalString()
+	return json_raw
+}
+
+// Unknown/Unknown to Unknown
+// Unknown/XXX to  XXX
+func ReduceUnknown(json_raw *jsonvalue.V) *jsonvalue.V {
+	class_raw, err := json_raw.Get("class")
+	if err != nil {
+		return json_raw
+	}
+	class := class_raw.String()
+	if class == "Unknown/Unknown" {
+		class = strings.Replace(class, "Unknown/Unknown", "Unknown", -1)
+	} else if strings.Contains(class, "/") {
+		ClassList := strings.Split(class, "/")
+		if ClassList[0] != ClassList[1] {
+			class = ClassList[1]
+		}
+	}
+	json_raw.SetString(class).At("class")
+	return json_raw
+}
+
+func HandleMsg(json []byte) []byte {
+	// Unmarshal JSON
+	json_raw, err := jsonvalue.UnmarshalString(string(json))
+	if err != nil {
+		errLog := "JSON 解码失败：" + err.Error() + "\n"
+		util.Logger.Error(errLog)
+	}
+	GeoDoneResult := SearchIP(json_raw)
+	ClassDone := ReduceUnknown(GeoDoneResult)
+	FinalResult := ClassDone.MustMarshalString()
+	return []byte(FinalResult)
+}
+
 func (h MyConsumerGroupHandler) ConsumeClaim(sess sarama.ConsumerGroupSession, claim sarama.ConsumerGroupClaim) error {
-	util.Logger.Info(fmt.Sprintf("GeoipHandlestatus: %v", h.k.taskCfg.GeoipHandle))
+	// util.Logger.Info(fmt.Sprintf("GeoipHandle status: %v", h.k.taskCfg.GeoipHandle))
 	for msg := range claim.Messages() {
+		// if need handle geoip
+		if h.k.taskCfg.GeoipHandle {
+			msg.Value = HandleMsg(msg.Value)
+		}
 		h.k.putFn(model.InputMessage{
 			Topic:     msg.Topic,
 			Partition: int(msg.Partition),

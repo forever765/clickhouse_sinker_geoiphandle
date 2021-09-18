@@ -10,4 +10,4 @@ package-lock.json
 *.bin
 dist
 vendor
-
+*_gen_log

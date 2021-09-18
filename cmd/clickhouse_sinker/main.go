@@ -73,7 +73,7 @@ func initCmdOptions() {
 	// 1. Set options to default value.
 	cmdOps = CmdOptions{
 		ShowVer:          false,
-		HTTPPort:         0, // 0 menas a randomly OS chosen port
+		HTTPPort:         21888, // 0 menas a randomly OS chosen port
 		PushGatewayAddrs: "",
 		PushInterval:     10,
 		LocalCfgFile:     "/etc/clickhouse_sinker.json",

@@ -153,8 +153,8 @@ const (
 	defaultBufferSize         = 1 << 18 //262144
 	maxFlushInterval          = 600
 	defaultFlushInterval      = 5
-	defaultTimeZone           = "Local"
 	defaultGeoipHandle        = false
+	defaultTimeZone           = "Local"
 	defaultLogLevel           = "info"
 	defaultKerberosConfigPath = "/etc/krb5.conf"
 	defaultMaxOpenConns       = 1

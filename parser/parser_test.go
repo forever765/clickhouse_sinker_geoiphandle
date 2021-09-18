@@ -190,7 +190,7 @@ func initMetrics() {
 		parser = pp.Get()
 		if metric, errInit = parser.Parse(sample); errInit != nil {
 			msg := fmt.Sprintf("parser.Parse failed: %+v\n", errInit)
-			panic(msg)
+			util.Logger.Error(msg)
 		}
 		metrics[name] = metric
 	}
@@ -232,7 +232,7 @@ func doTestSimple(t *testing.T, method string, testCases []SimpleCase) {
 			case "GetElasticDateTime":
 				v = metric.GetElasticDateTime(testCases[j].Field, testCases[j].Nullable)
 			default:
-				panic("error!")
+				util.Logger.Error("error!")
 			}
 			require.Equal(t, testCases[j].ExpVal, v, desc)
 		}
@@ -663,7 +663,8 @@ func BenchmarkUnmarshallFastJson(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		v, err := p.Parse(str)
 		if err != nil {
-			panic(err)
+			errLog := "JSON 解码失败：" + err.Error() + "\n"
+			util.Logger.Error(errLog)
 		}
 		v.GetInt("null")
 		v.GetInt("bool_true")
