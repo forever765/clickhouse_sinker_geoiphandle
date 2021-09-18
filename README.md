@@ -9,7 +9,8 @@ Refers to [docs](https://housepower.github.io/clickhouse_sinker/dev/introduction
 <br>
 
 ## Imagine process
-#### Pmacctd --> Kafka --> ClickHouse_Sinker ( ipaddress handle and reduce unknown on class, add "loc_src/loc_dst/isp_src/isp_dst" field )
+##### Pmacctd --> Kafka --> ClickHouse_Sinker ( ipaddress handle and reduce unknown on class, add "loc_src/loc_dst/isp_src/isp_dst" field )
+#### GeoIP information provide from [nali](https://github.com/zu1k/nali)
 
 ## Quick Start
 configuration new option "geoipHandle" under the "task" field, default value is false
