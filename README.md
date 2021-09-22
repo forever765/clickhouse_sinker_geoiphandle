@@ -1,4 +1,4 @@
-# clickhouse_sinker_geoiphandle
+# clickhouse_sinker_nali
 
 clickhouse_sinker is a sinker program that transfer kafka message into [ClickHouse](https://clickhouse.yandex/).
 
