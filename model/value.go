@@ -91,6 +91,9 @@ func WhichType(typ string) (dataType int, nullable bool) {
 	} else if strings.HasPrefix(typ, "Array(Decimal") {
 		dataType = FloatArray
 		nullable = false
+	} else if strings.HasPrefix(typ, "Enum") {
+		dataType = String
+		nullable = false
 	} else {
 		util.Logger.Fatal(fmt.Sprintf("LOGIC ERROR: unsupported ClickHouse data type %v", typ))
 	}
@@ -111,6 +114,7 @@ func init() {
 	for _, t := range []string{"String", "FixedString"} {
 		primTypeInfo[t] = TypeInfo{Type: String, Nullable: false}
 	}
+
 	for _, t := range []string{"Date", "DateTime", "DateTime64"} {
 		primTypeInfo[t] = TypeInfo{Type: DateTime, Nullable: false}
 	}
