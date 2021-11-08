@@ -18,6 +18,7 @@ clickhouse_sinker is a sinker program that transfer kafka message into [ClickHou
 4. If enum8 or enum16 type field exists in ClickHouse, ck_sinker will treat it as a string type
 
 ## Build && Run
+`go get -u github.com/housepower/clickhouse_sinker/...`
 `make build`
 
 ## Quick Start
