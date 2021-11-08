@@ -25,11 +25,13 @@ import (
 	"net/http/pprof"
 	"os"
 	"reflect"
+	"sort"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/housepower/clickhouse_sinker/config"
+	cm "github.com/housepower/clickhouse_sinker/config_manager"
 	"github.com/housepower/clickhouse_sinker/health"
 	"github.com/housepower/clickhouse_sinker/pool"
 	"github.com/housepower/clickhouse_sinker/statistics"
@@ -43,7 +45,9 @@ import (
 
 type CmdOptions struct {
 	ShowVer          bool
-	HTTPPort         int
+	LogLevel         string // "debug", "info", "warn", "error", "dpanic", "panic", "fatal"
+	LogPaths         string // comma-separated paths. "stdout" means the console stdout
+	HTTPPort         int    // 0 menas a randomly OS chosen port
 	PushGatewayAddrs string
 	PushInterval     int
 	LocalCfgFile     string
@@ -53,6 +57,7 @@ type CmdOptions struct {
 	NacosUsername    string
 	NacosPassword    string
 	NacosDataID      string
+	NacosServiceName string // participate in assignment management if not empty
 }
 
 var (
@@ -83,10 +88,13 @@ func initCmdOptions() {
 		NacosUsername:    "nacos",
 		NacosPassword:    "nacos",
 		NacosDataID:      "",
+		NacosServiceName: "",
 	}
 
 	// 2. Replace options with the corresponding env variable if present.
 	util.EnvBoolVar(&cmdOps.ShowVer, "v")
+	util.EnvStringVar(&cmdOps.LogLevel, "log-level")
+	util.EnvStringVar(&cmdOps.LogPaths, "log-paths")
 	util.EnvIntVar(&cmdOps.HTTPPort, "http-port")
 	util.EnvStringVar(&cmdOps.PushGatewayAddrs, "metric-push-gateway-addrs")
 	util.EnvIntVar(&cmdOps.PushInterval, "push-interval")
@@ -97,9 +105,12 @@ func initCmdOptions() {
 	util.EnvStringVar(&cmdOps.NacosNamespaceID, "nacos-namespace-id")
 	util.EnvStringVar(&cmdOps.NacosGroup, "nacos-group")
 	util.EnvStringVar(&cmdOps.NacosDataID, "nacos-dataid")
+	util.EnvStringVar(&cmdOps.NacosServiceName, "nacos-service-name")
 
 	// 3. Replace options with the corresponding CLI parameter if present.
 	flag.BoolVar(&cmdOps.ShowVer, "v", cmdOps.ShowVer, "show build version and quit")
+	flag.StringVar(&cmdOps.LogLevel, "log-level", cmdOps.LogLevel, "one of debug, info, warn, error, dpanic, panic, fatal")
+	flag.StringVar(&cmdOps.LogPaths, "log-paths", cmdOps.LogPaths, "a list of comma-separated log file path. stdout means the console stdout")
 	flag.IntVar(&cmdOps.HTTPPort, "http-port", cmdOps.HTTPPort, "http listen port")
 	flag.StringVar(&cmdOps.PushGatewayAddrs, "metric-push-gateway-addrs", cmdOps.PushGatewayAddrs, "a list of comma-separated prometheus push gatway address")
 	flag.IntVar(&cmdOps.PushInterval, "push-interval", cmdOps.PushInterval, "push interval in seconds")
@@ -112,6 +123,7 @@ func initCmdOptions() {
 		`nacos namespace ID. Neither DEFAULT_NAMESPACE_ID("public") nor namespace name work!`)
 	flag.StringVar(&cmdOps.NacosGroup, "nacos-group", cmdOps.NacosGroup, `nacos group name. Empty string doesn't work!`)
 	flag.StringVar(&cmdOps.NacosDataID, "nacos-dataid", cmdOps.NacosDataID, "nacos dataid")
+	flag.StringVar(&cmdOps.NacosServiceName, "nacos-service-name", cmdOps.NacosServiceName, "nacos service name")
 	flag.Parse()
 }
 
@@ -120,8 +132,10 @@ func getVersion() string {
 }
 
 func init() {
-	util.InitLogger("info", []string{"stdout"})
 	initCmdOptions()
+	logPaths := strings.Split(cmdOps.LogPaths, ",")
+	util.InitLogger(logPaths)
+	util.SetLogLevel(cmdOps.LogLevel)
 	util.Logger.Info(getVersion())
 	if cmdOps.ShowVer {
 		os.Exit(0)
@@ -181,12 +195,12 @@ func main() {
 			}
 		}()
 
-		var rcm config.RemoteConfManager
+		var rcm cm.RemoteConfManager
 		var properties map[string]interface{}
 		if cmdOps.NacosDataID != "" {
 			util.Logger.Info(fmt.Sprintf("get config from nacos serverAddrs %s, namespaceId %s, group %s, dataId %s",
 				cmdOps.NacosAddr, cmdOps.NacosNamespaceID, cmdOps.NacosGroup, cmdOps.NacosDataID))
-			rcm = &config.NacosConfManager{}
+			rcm = &cm.NacosConfManager{}
 			properties = make(map[string]interface{})
 			properties["serverAddrs"] = cmdOps.NacosAddr
 			properties["username"] = cmdOps.NacosUsername
@@ -194,12 +208,18 @@ func main() {
 			properties["namespaceId"] = cmdOps.NacosNamespaceID
 			properties["group"] = cmdOps.NacosGroup
 			properties["dataId"] = cmdOps.NacosDataID
+			properties["serviceName"] = cmdOps.NacosServiceName
 		} else {
 			util.Logger.Info(fmt.Sprintf("get config from local file %s", cmdOps.LocalCfgFile))
 		}
 		if rcm != nil {
 			if err := rcm.Init(properties); err != nil {
 				util.Logger.Fatal("rcm.Init failed", zap.Error(err))
+			}
+			if cmdOps.NacosServiceName != "" {
+				if err := rcm.Register(selfIP, httpPort); err != nil {
+					util.Logger.Fatal("rcm.Init failed", zap.Error(err))
+				}
 			}
 		}
 		runner = NewSinker(rcm)
@@ -215,19 +235,26 @@ func main() {
 
 // Sinker object maintains number of task for each partition
 type Sinker struct {
-	curCfg *config.Config
-	numCfg int
-	pusher *statistics.Pusher
-	tasks  map[string]*task.Service
-	rcm    config.RemoteConfManager
-	ctx    context.Context
-	cancel context.CancelFunc
+	curCfg  *config.Config
+	numCfg  int
+	pusher  *statistics.Pusher
+	tasks   map[string]*task.Service
+	rcm     cm.RemoteConfManager
+	ctx     context.Context
+	cancel  context.CancelFunc
+	stopped chan struct{}
 }
 
 // NewSinker get an instance of sinker with the task list
-func NewSinker(rcm config.RemoteConfManager) *Sinker {
+func NewSinker(rcm cm.RemoteConfManager) *Sinker {
 	ctx, cancel := context.WithCancel(context.Background())
-	s := &Sinker{tasks: make(map[string]*task.Service), rcm: rcm, ctx: ctx, cancel: cancel}
+	s := &Sinker{
+		tasks:   make(map[string]*task.Service),
+		rcm:     rcm,
+		ctx:     ctx,
+		cancel:  cancel,
+		stopped: make(chan struct{}),
+	}
 	return s
 }
 
@@ -235,17 +262,20 @@ func (s *Sinker) Init() (err error) {
 	return
 }
 
-// Run rull task in different go routines
+// Run is the mainloop to get and apply config
 func (s *Sinker) Run() {
 	var err error
 	var newCfg *config.Config
+	defer func() {
+		s.stopped <- struct{}{}
+	}()
 	if cmdOps.PushGatewayAddrs != "" {
 		addrs := strings.Split(cmdOps.PushGatewayAddrs, ",")
 		s.pusher = statistics.NewPusher(addrs, cmdOps.PushInterval, httpAddr)
 		if err = s.pusher.Init(); err != nil {
 			return
 		}
-		go s.pusher.Run(s.ctx)
+		go s.pusher.Run()
 	}
 	if s.rcm == nil {
 		if _, err = os.Stat(cmdOps.LocalCfgFile); err == nil {
@@ -267,9 +297,13 @@ func (s *Sinker) Run() {
 		}
 		<-s.ctx.Done()
 	} else {
+		if cmdOps.NacosServiceName != "" {
+			go s.rcm.Run()
+		}
 		for {
 			select {
 			case <-s.ctx.Done():
+				util.Logger.Info("Sinker.Run quit due to context has been canceled")
 				return
 			case <-time.After(10 * time.Second):
 				if newCfg, err = s.rcm.GetConfig(); err != nil {
@@ -291,9 +325,17 @@ func (s *Sinker) Run() {
 
 // Close shutdown task
 func (s *Sinker) Close() {
-	// 1. Stop tasks gracefully.
+	// 1. Stop rcm
+	if s.rcm != nil {
+		s.rcm.Stop()
+		s.rcm = nil
+	}
+	// 2. Quit Run mainloop
+	s.cancel()
+	<-s.stopped
+	// 3. Stop tasks gracefully.
 	s.stopAllTasks()
-	// 2. Stop pusher
+	// 4. Stop pusher
 	if s.pusher != nil {
 		s.pusher.Stop()
 		s.pusher = nil
@@ -313,20 +355,30 @@ func (s *Sinker) stopAllTasks() {
 	for taskName := range s.tasks {
 		delete(s.tasks, taskName)
 	}
-	util.Logger.Info("stopping parsing pool")
-	util.GlobalParsingPool.StopWait()
-	util.Logger.Info("stopping timer wheel")
-	util.GlobalTimerWheel.Stop()
-	util.Logger.Info("stopping writing pool")
-	util.GlobalWritingPool.StopWait()
+	util.Logger.Info("stopped all tasks")
+	if util.GlobalParsingPool != nil {
+		util.GlobalParsingPool.StopWait()
+	}
+	util.Logger.Info("stopped parsing pool")
+	if util.GlobalTimerWheel != nil {
+		util.GlobalTimerWheel.Stop()
+	}
+	util.Logger.Info("stopped timer wheel")
+	if util.GlobalWritingPool != nil {
+		util.GlobalWritingPool.StopWait()
+	}
+	util.Logger.Info("stopped writing pool")
 }
 
 func (s *Sinker) applyConfig(newCfg *config.Config) (err error) {
-	util.InitLogger(newCfg.LogLevel, newCfg.LogPaths)
+	util.SetLogLevel(newCfg.LogLevel)
 	if s.curCfg == nil {
 		// The first time invoking of applyConfig
 		err = s.applyFirstConfig(newCfg)
-	} else if !reflect.DeepEqual(newCfg.Clickhouse, s.curCfg.Clickhouse) || !reflect.DeepEqual(newCfg.Kafka, s.curCfg.Kafka) || !reflect.DeepEqual(newCfg.Tasks, s.curCfg.Tasks) {
+	} else if !reflect.DeepEqual(newCfg.Clickhouse, s.curCfg.Clickhouse) ||
+		!reflect.DeepEqual(newCfg.Kafka, s.curCfg.Kafka) ||
+		!reflect.DeepEqual(newCfg.Tasks, s.curCfg.Tasks) ||
+		!reflect.DeepEqual(newCfg.Assignment.Map, s.curCfg.Assignment.Map) {
 		err = s.applyAnotherConfig(newCfg)
 	}
 	return
@@ -334,7 +386,6 @@ func (s *Sinker) applyConfig(newCfg *config.Config) (err error) {
 
 func (s *Sinker) applyFirstConfig(newCfg *config.Config) (err error) {
 	util.Logger.Info("going to apply the first config", zap.Reflect("config", newCfg))
-
 	// 1. Initialize clickhouse connections
 	chCfg := &newCfg.Clickhouse
 	if err = pool.InitClusterConn(chCfg.Hosts, chCfg.Port, chCfg.DB, chCfg.Username, chCfg.Password,
@@ -349,6 +400,9 @@ func (s *Sinker) applyFirstConfig(newCfg *config.Config) (err error) {
 
 	// 3. Generate, initialize and run task
 	for _, taskCfg := range newCfg.Tasks {
+		if cmdOps.NacosServiceName != "" && !newCfg.IsAssigned(httpAddr, taskCfg.Name) {
+			continue
+		}
 		task := task.NewTaskService(newCfg, taskCfg)
 		if err = task.Init(); err != nil {
 			return
@@ -356,16 +410,15 @@ func (s *Sinker) applyFirstConfig(newCfg *config.Config) (err error) {
 		s.tasks[taskCfg.Name] = task
 	}
 	for _, task := range s.tasks {
-		go task.Run(s.ctx)
+		go task.Run()
 	}
 	s.curCfg = newCfg
+	util.Logger.Info("applied the first config")
 	return
 }
 
 func (s *Sinker) applyAnotherConfig(newCfg *config.Config) (err error) {
 	util.Logger.Info("going to apply another config", zap.Int("number", s.numCfg), zap.Reflect("config", newCfg))
-	s.numCfg++
-
 	if !reflect.DeepEqual(newCfg.Kafka, s.curCfg.Kafka) || !reflect.DeepEqual(newCfg.Clickhouse, s.curCfg.Clickhouse) {
 		// 1. Stop tasks gracefully. Wait until all flying data be processed (write to CH and commit to Kafka).
 		s.stopAllTasks()
@@ -387,17 +440,24 @@ func (s *Sinker) applyAnotherConfig(newCfg *config.Config) (err error) {
 		util.Logger.Info("resized writing pool", zap.Int("maxWorkers", maxWorkers))
 
 		// 4. Generate, initialize and run tasks.
+		var tasksToStart []string
 		for _, taskCfg := range newCfg.Tasks {
+			if cmdOps.NacosServiceName != "" && !newCfg.IsAssigned(httpAddr, taskCfg.Name) {
+				continue
+			}
 			task := task.NewTaskService(newCfg, taskCfg)
 			if err = task.Init(); err != nil {
 				return
 			}
+			tasksToStart = append(tasksToStart, taskCfg.Name)
 			s.tasks[taskCfg.Name] = task
 		}
 		for _, task := range s.tasks {
-			go task.Run(s.ctx)
+			go task.Run()
 		}
-	} else if !reflect.DeepEqual(newCfg.Tasks, s.curCfg.Tasks) {
+		sort.Strings(tasksToStart)
+		util.Logger.Info("started tasks", zap.Reflect("tasks", tasksToStart))
+	} else if !reflect.DeepEqual(newCfg.Tasks, s.curCfg.Tasks) || !reflect.DeepEqual(newCfg.Assignment.Map, s.curCfg.Assignment.Map) {
 		//1. Find tasks need to stop.
 		var tasksToStop []string
 		curCfgTasks := make(map[string]*config.TaskConfig)
@@ -406,6 +466,9 @@ func (s *Sinker) applyAnotherConfig(newCfg *config.Config) (err error) {
 			curCfgTasks[taskCfg.Name] = taskCfg
 		}
 		for _, taskCfg := range newCfg.Tasks {
+			if cmdOps.NacosServiceName != "" && !newCfg.IsAssigned(httpAddr, taskCfg.Name) {
+				continue
+			}
 			newCfgTasks[taskCfg.Name] = taskCfg
 		}
 		for taskName := range s.tasks {
@@ -415,6 +478,7 @@ func (s *Sinker) applyAnotherConfig(newCfg *config.Config) (err error) {
 				tasksToStop = append(tasksToStop, taskName)
 			}
 		}
+		sort.Strings(tasksToStop)
 		// 2. Stop tasks in parallel found at the previous step.
 		// They must drain flying batchs as quickly as possible to allow another clickhouse_sinker
 		// instance take over partitions safely.
@@ -430,7 +494,9 @@ func (s *Sinker) applyAnotherConfig(newCfg *config.Config) (err error) {
 		for _, taskName := range tasksToStop {
 			delete(s.tasks, taskName)
 		}
+		util.Logger.Info("stopped tasks", zap.Reflect("tasks", tasksToStop))
 		// 3. Initailize tasks which are new or their config differ.
+		var tasksToStart []string
 		var newTasks []*task.Service
 		for taskName, taskCfg := range newCfgTasks {
 			if _, ok := s.tasks[taskName]; ok {
@@ -441,15 +507,20 @@ func (s *Sinker) applyAnotherConfig(newCfg *config.Config) (err error) {
 				return
 			}
 			s.tasks[taskName] = task
+			tasksToStart = append(tasksToStart, taskName)
 			newTasks = append(newTasks, task)
 		}
 
 		// 4. Start new tasks. We don't do it at step 3 in order to avoid goroutine leak due to errors raised by later steps.
 		for _, task := range newTasks {
-			go task.Run(s.ctx)
+			go task.Run()
 		}
+		sort.Strings(tasksToStart)
+		util.Logger.Info("started tasks", zap.Reflect("tasks", tasksToStart))
 	}
 	// Record the new config
 	s.curCfg = newCfg
+	util.Logger.Info("applied another config", zap.Int("number", s.numCfg))
+	s.numCfg++
 	return
 }

@@ -22,7 +22,7 @@ import (
 )
 
 const (
-	TypeUnknown = iota
+	Unknown = iota
 	Int
 	Float
 	String
@@ -42,6 +42,32 @@ type TypeInfo struct {
 var (
 	typeInfo map[string]TypeInfo
 )
+
+func GetTypeName(typ int) (name string) {
+	switch typ {
+	case Int:
+		name = "Int"
+	case Float:
+		name = "Float"
+	case String:
+		name = "String"
+	case DateTime:
+		name = "DateTime"
+	case ElasticDateTime:
+		name = "ElasticDateTime"
+	case IntArray:
+		name = "IntArray"
+	case FloatArray:
+		name = "FloatArray"
+	case StringArray:
+		name = "StringArray"
+	case DateTimeArray:
+		name = "DateTimeArray"
+	default:
+		name = "Unknown"
+	}
+	return
+}
 
 // There are only three cases for the value type of metric, (float64, string, map [string] interface {})
 func GetValueByType(metric Metric, cwt *ColumnWithType) (val interface{}) {
@@ -91,9 +117,15 @@ func WhichType(typ string) (dataType int, nullable bool) {
 	} else if strings.HasPrefix(typ, "Array(Decimal") {
 		dataType = FloatArray
 		nullable = false
-	} else if strings.HasPrefix(typ, "Enum") {
+	} else if strings.HasPrefix(typ, "FixedString") {
 		dataType = String
+	} else if strings.HasPrefix(typ, "Array(FixedString") {
+		dataType = StringArray
 		nullable = false
+	} else if strings.HasPrefix(typ, "Enum8(") {
+		dataType = String
+	} else if strings.HasPrefix(typ, "Enum16(") {
+		dataType = String
 	} else {
 		util.Logger.Fatal(fmt.Sprintf("LOGIC ERROR: unsupported ClickHouse data type %v", typ))
 	}
@@ -111,11 +143,10 @@ func init() {
 	for _, t := range []string{"Float32", "Float64"} {
 		primTypeInfo[t] = TypeInfo{Type: Float, Nullable: false}
 	}
-	for _, t := range []string{"String", "FixedString"} {
+	for _, t := range []string{"String", "UUID"} {
 		primTypeInfo[t] = TypeInfo{Type: String, Nullable: false}
 	}
-
-	for _, t := range []string{"Date", "DateTime", "DateTime64"} {
+	for _, t := range []string{"Date", "DateTime"} {
 		primTypeInfo[t] = TypeInfo{Type: DateTime, Nullable: false}
 	}
 	primTypeInfo["ElasticDateTime"] = TypeInfo{Type: ElasticDateTime, Nullable: false}

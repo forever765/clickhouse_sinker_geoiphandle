@@ -18,6 +18,7 @@ package config
 import (
 	"encoding/json"
 	"io/ioutil"
+	"regexp"
 	"strings"
 
 	"github.com/housepower/clickhouse_sinker/util"
@@ -25,23 +26,14 @@ import (
 	"github.com/pkg/errors"
 )
 
-// RemoteConfManager can be implemented by many backends: Nacos, Consul, etcd, ZooKeeper...
-type RemoteConfManager interface {
-	Init(properties map[string]interface{}) error
-	// GetConfig fetchs the config. The manager shall not reference the returned Config object after call.
-	GetConfig() (conf *Config, err error)
-	// PublishConfig publishs the config.
-	PublishConfig(conf *Config) (err error)
-}
-
 // Config struct used for different configurations use
 type Config struct {
 	Kafka      KafkaConfig
 	Clickhouse ClickHouseConfig
 	Task       *TaskConfig
 	Tasks      []*TaskConfig
+	Assignment Assignment
 	LogLevel   string
-	LogPaths   []string
 }
 
 // KafkaConfig configuration parameters
@@ -135,17 +127,33 @@ type TaskConfig struct {
 	DynamicSchema struct {
 		Enable  bool
 		MaxDims int // the upper limit of dynamic columns number, <=0 means math.MaxInt16. protecting dirty data attack
+		// A column is added for new key K if all following conditions are true:
+		// - K isn't in ExcludeColumns
+		// - number of existing columns doesn't reach MaxDims-1
+		// - WhiteList is empty, or K matchs WhiteList
+		// - BlackList is empty, or K doesn't match BlackList
+		WhiteList string // the regexp of white list
+		BlackList string // the regexp of black list
 	}
+	// PrometheusSchema expects each message is a Prometheus metric(timestamp, value, metric name and a list of labels).
+	PrometheusSchema bool
 
 	// ShardingKey is the column name to which sharding against
 	ShardingKey string `json:"shardingKey,omitempty"`
 	// ShardingPolicy is `stripe,<interval>`(requires ShardingKey be numerical) or `hash`(requires ShardingKey be string)
 	ShardingPolicy string `json:"shardingPolicy,omitempty"`
 
-	FlushInterval int    `json:"flushInterval,omitempty"`
-	BufferSize    int    `json:"bufferSize,omitempty"`
-	TimeZone      string `json:"timezone"`
-	GeoipHandle   bool
+	FlushInterval int     `json:"flushInterval,omitempty"`
+	BufferSize    int     `json:"bufferSize,omitempty"`
+	TimeZone      string  `json:"timeZone"`
+	TimeUnit      float64 `json:"timeUnit"`
+}
+
+type Assignment struct {
+	Version   int
+	UpdatedAt int64               // timestamp when created
+	UpdatedBy string              // leader instance
+	Map       map[string][]string // map instance to a list of task_name
 }
 
 const (
@@ -207,6 +215,7 @@ func (cfg *Config) Normallize() (err error) {
 		cfg.Task = nil
 	}
 	for _, taskCfg := range cfg.Tasks {
+<<<<<<< HEAD
 		if taskCfg.KafkaClient == "" || (cfg.Kafka.Sasl.Enable && cfg.Kafka.Sasl.Username == "") {
 			// known limitations of kafka-go:
 			// - The Reader API is too high-level. There's no generation cleanup callback which sarama provides.
@@ -247,6 +256,10 @@ func (cfg *Config) Normallize() (err error) {
 				err = errors.Errorf("Parser %s doesn't support DynamicSchema", taskCfg.Parser)
 				return
 			}
+=======
+		if err = cfg.normallizeTask(taskCfg); err != nil {
+			return
+>>>>>>> chsinker-upstream/master
 		}
 	}
 	switch strings.ToLower(cfg.LogLevel) {
@@ -254,8 +267,65 @@ func (cfg *Config) Normallize() (err error) {
 	default:
 		cfg.LogLevel = defaultLogLevel
 	}
-	if len(cfg.LogPaths) == 0 {
-		cfg.LogPaths = []string{"stdout"}
+	return
+}
+
+func (cfg *Config) normallizeTask(taskCfg *TaskConfig) (err error) {
+	if taskCfg.KafkaClient == "" || (cfg.Kafka.Sasl.Enable && cfg.Kafka.Sasl.Username == "") {
+		// known limitations of kafka-go:
+		// - The Reader API is too high-level. There's no generation cleanup callback which sarama provides.
+		// - Doesn't support SASL/GSSAPI(Kerberos). https://github.com/segmentio/kafka-go/issues/539
+		taskCfg.KafkaClient = "sarama"
+	}
+	if taskCfg.Parser == "" || taskCfg.Parser == "json" {
+		taskCfg.Parser = "fastjson"
+	}
+
+	for i := range taskCfg.Dims {
+		if taskCfg.Dims[i].SourceName == "" {
+			taskCfg.Dims[i].SourceName = util.GetSourceName(taskCfg.Dims[i].Name)
+		}
+	}
+
+	if taskCfg.FlushInterval <= 0 {
+		taskCfg.FlushInterval = defaultFlushInterval
+	} else if taskCfg.FlushInterval > maxFlushInterval {
+		taskCfg.FlushInterval = maxFlushInterval
+	}
+	if taskCfg.BufferSize <= 0 {
+		taskCfg.BufferSize = defaultBufferSize
+	} else if taskCfg.BufferSize > MaxBufferSize {
+		taskCfg.BufferSize = MaxBufferSize
+	} else {
+		taskCfg.BufferSize = 1 << util.GetShift(taskCfg.BufferSize)
+	}
+	if taskCfg.TimeZone == "" {
+		taskCfg.TimeZone = defaultTimeZone
+	}
+	if taskCfg.TimeUnit == 0.0 {
+		taskCfg.TimeUnit = float64(1.0)
+	}
+	if taskCfg.PrometheusSchema {
+		taskCfg.DynamicSchema.Enable = true
+		taskCfg.AutoSchema = true
+	}
+	if taskCfg.DynamicSchema.Enable {
+		if taskCfg.Parser != "fastjson" && taskCfg.Parser != "gjson" {
+			err = errors.Errorf("Parser %s doesn't support DynamicSchema", taskCfg.Parser)
+			return
+		}
+	}
+	if taskCfg.DynamicSchema.WhiteList != "" {
+		if _, err = regexp.Compile(taskCfg.DynamicSchema.WhiteList); err != nil {
+			err = errors.Wrapf(err, "WhiteList %s is invalid regexp", taskCfg.DynamicSchema.WhiteList)
+			return
+		}
+	}
+	if taskCfg.DynamicSchema.BlackList != "" {
+		if _, err = regexp.Compile(taskCfg.DynamicSchema.BlackList); err != nil {
+			err = errors.Wrapf(err, "BlackList %s is invalid regexp", taskCfg.DynamicSchema.BlackList)
+			return
+		}
 	}
 	return
 }
@@ -341,6 +411,18 @@ func (cfg *Config) convertKfkSecurity() {
 			}
 		}
 	}
+}
+
+func (cfg *Config) IsAssigned(instance, task string) (assigned bool) {
+	if taskNames, ok := cfg.Assignment.Map[instance]; ok {
+		for _, taskName := range taskNames {
+			if taskName == task {
+				assigned = true
+				return
+			}
+		}
+	}
+	return
 }
 
 func readConfig(config string) map[string]string {

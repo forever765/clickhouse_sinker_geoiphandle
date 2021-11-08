@@ -17,10 +17,12 @@ package parser
 
 import (
 	"fmt"
+	"regexp"
 	"sync"
 	"time"
 
 	"github.com/tidwall/gjson"
+	"go.uber.org/zap"
 
 	"github.com/housepower/clickhouse_sinker/model"
 	"github.com/housepower/clickhouse_sinker/util"
@@ -108,7 +110,7 @@ func (c *GjsonMetric) GetDateTime(key string, nullable bool) (val interface{}) {
 	}
 	switch r.Type {
 	case gjson.Number:
-		val = UnixFloat(r.Num)
+		val = UnixFloat(r.Num, c.pp.timeUnit)
 	case gjson.String:
 		var err error
 		if val, err = c.pp.ParseDateTime(key, r.Str); err != nil {
@@ -130,7 +132,7 @@ func (c *GjsonMetric) GetElasticDateTime(key string, nullable bool) (val interfa
 
 func (c *GjsonMetric) GetArray(key string, typ int) (val interface{}) {
 	r := gjson.Get(c.raw, key)
-	if !r.Exists() || r.Type != gjson.JSON {
+	if !r.IsArray() {
 		val = makeArray(typ)
 		return
 	}
@@ -187,7 +189,7 @@ func (c *GjsonMetric) GetArray(key string, typ int) (val interface{}) {
 			var t time.Time
 			switch e.Type {
 			case gjson.Number:
-				t = UnixFloat(e.Num)
+				t = UnixFloat(e.Num, c.pp.timeUnit)
 			case gjson.String:
 				var err error
 				if t, err = c.pp.ParseDateTime(key, e.Str); err != nil {
@@ -205,8 +207,26 @@ func (c *GjsonMetric) GetArray(key string, typ int) (val interface{}) {
 	return
 }
 
-func (c *GjsonMetric) GetNewKeys(knownKeys *sync.Map, newKeys *sync.Map) bool {
-	return false
+func (c *GjsonMetric) GetNewKeys(knownKeys, newKeys *sync.Map, white, black *regexp.Regexp) (foundNew bool) {
+	gjson.Parse(c.raw).ForEach(func(k, v gjson.Result) bool {
+		strKey := k.Str
+		if _, loaded := knownKeys.LoadOrStore(strKey, nil); !loaded {
+			if (white == nil || white.MatchString(strKey)) &&
+				(black == nil || !black.MatchString(strKey)) {
+				if typ := gjDetectType(v); typ != model.Unknown {
+					newKeys.Store(strKey, typ)
+					foundNew = true
+				} else {
+					util.Logger.Warn("GjsonMetric.GetNewKeys failed to detect field type", zap.String("key", strKey), zap.String("value", v.String()))
+				}
+			} else {
+				util.Logger.Warn("GjsonMetric.GetNewKeys ignored new key due to white/black list setting", zap.String("key", strKey), zap.String("value", v.String()))
+				knownKeys.Store(strKey, nil)
+			}
+		}
+		return true
+	})
+	return
 }
 
 func gjCompatibleInt(r gjson.Result) (ok bool) {
@@ -246,6 +266,50 @@ func gjCompatibleDateTime(r gjson.Result) (ok bool) {
 		ok = true
 	case gjson.String:
 		ok = true
+	default:
+	}
+	return
+}
+
+func gjDetectType(v gjson.Result) (typ int) {
+	typ = model.Unknown
+	switch v.Type {
+	case gjson.True, gjson.False:
+		typ = model.Int
+	case gjson.Number:
+		typ = model.Float
+		if float64(v.Int()) == v.Num {
+			typ = model.Int
+		}
+	case gjson.String:
+		typ = model.String
+		if _, layout := parseInLocation(v.Str, time.Local); layout != "" {
+			typ = model.DateTime
+		}
+	case gjson.JSON:
+		if v.IsObject() {
+			typ = model.String
+		} else if v.IsArray() {
+			if array := v.Array(); len(array) != 0 {
+				switch array[0].Type {
+				case gjson.True, gjson.False:
+					typ = model.IntArray
+				case gjson.Number:
+					typ = model.FloatArray
+					if float64(array[0].Int()) == array[0].Num {
+						typ = model.IntArray
+					}
+				case gjson.String:
+					typ = model.StringArray
+					if _, layout := parseInLocation(array[0].Str, time.Local); layout != "" {
+						typ = model.DateTimeArray
+					}
+				case gjson.JSON:
+					typ = model.StringArray
+				default:
+				}
+			}
+		}
 	default:
 	}
 	return

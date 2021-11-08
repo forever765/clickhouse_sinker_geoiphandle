@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"hash"
 	"strings"
+	"sync"
 	"time"
 
 	jsonvalue "github.com/Andrew-M-C/go.jsonvalue"
@@ -44,8 +45,10 @@ type KafkaSarama struct {
 	taskCfg   *config.TaskConfig
 	cg        sarama.ConsumerGroup
 	sess      sarama.ConsumerGroupSession
-	stopped   chan struct{}
-	putFn     func(msg model.InputMessage)
+	ctx       context.Context
+	cancel    context.CancelFunc
+	wgRun     sync.WaitGroup
+	putFn     func(msg *model.InputMessage)
 	cleanupFn func()
 }
 
@@ -174,15 +177,32 @@ func (h MyConsumerGroupHandler) ConsumeClaim(sess sarama.ConsumerGroupSession, c
 }
 
 // Init Initialise the kafka instance with configuration
-func (k *KafkaSarama) Init(cfg *config.Config, taskCfg *config.TaskConfig, putFn func(msg model.InputMessage), cleanupFn func()) (err error) {
+func (k *KafkaSarama) Init(cfg *config.Config, taskCfg *config.TaskConfig, putFn func(msg *model.InputMessage), cleanupFn func()) (err error) {
 	k.cfg = cfg
 	k.taskCfg = taskCfg
-	kfkCfg := &cfg.Kafka
-	k.stopped = make(chan struct{})
+	k.ctx, k.cancel = context.WithCancel(context.Background())
 	k.putFn = putFn
 	k.cleanupFn = cleanupFn
-	config := sarama.NewConfig()
-	if config.Version, err = sarama.ParseKafkaVersion(kfkCfg.Version); err != nil {
+	kfkCfg := &cfg.Kafka
+	sarCfg, err := GetSaramaConfig(&cfg.Kafka)
+	if err != nil {
+		return err
+	}
+	if taskCfg.Earliest {
+		sarCfg.Consumer.Offsets.Initial = sarama.OffsetOldest
+	}
+	cg, err := sarama.NewConsumerGroup(strings.Split(kfkCfg.Brokers, ","), taskCfg.ConsumerGroup, sarCfg)
+	if err != nil {
+		return err
+	}
+	//sarama.Logger, _ = zap.NewStdLogAt(util.Logger.With(zap.String("name", "sarama")), zapcore.DebugLevel)
+	k.cg = cg
+	return nil
+}
+
+func GetSaramaConfig(kfkCfg *config.KafkaConfig) (sarCfg *sarama.Config, err error) {
+	sarCfg = sarama.NewConfig()
+	if sarCfg.Version, err = sarama.ParseKafkaVersion(kfkCfg.Version); err != nil {
 		err = errors.Wrapf(err, "")
 		return
 	}
@@ -197,43 +217,37 @@ func (k *KafkaSarama) Init(cfg *config.Config, taskCfg *config.TaskConfig, putFn
 		}
 	}
 	if kfkCfg.TLS.Enable {
-		config.Net.TLS.Enable = true
-		if config.Net.TLS.Config, err = util.NewTLSConfig(kfkCfg.TLS.CaCertFiles, kfkCfg.TLS.ClientCertFile, kfkCfg.TLS.ClientKeyFile, kfkCfg.TLS.EndpIdentAlgo == ""); err != nil {
+		sarCfg.Net.TLS.Enable = true
+		if sarCfg.Net.TLS.Config, err = util.NewTLSConfig(kfkCfg.TLS.CaCertFiles, kfkCfg.TLS.ClientCertFile, kfkCfg.TLS.ClientKeyFile, kfkCfg.TLS.EndpIdentAlgo == ""); err != nil {
 			return
 		}
 	}
 	// check for authentication
 	if kfkCfg.Sasl.Enable {
-		config.Net.SASL.Enable = true
-		if config.Version.IsAtLeast(sarama.V1_0_0_0) {
-			config.Net.SASL.Version = sarama.SASLHandshakeV1
+		sarCfg.Net.SASL.Enable = true
+		if sarCfg.Version.IsAtLeast(sarama.V1_0_0_0) {
+			sarCfg.Net.SASL.Version = sarama.SASLHandshakeV1
 		}
-		config.Net.SASL.Mechanism = (sarama.SASLMechanism)(kfkCfg.Sasl.Mechanism)
-		switch config.Net.SASL.Mechanism {
+		sarCfg.Net.SASL.Mechanism = (sarama.SASLMechanism)(kfkCfg.Sasl.Mechanism)
+		switch sarCfg.Net.SASL.Mechanism {
 		case "SCRAM-SHA-256":
-			config.Net.SASL.SCRAMClientGeneratorFunc = func() sarama.SCRAMClient { return &XDGSCRAMClient{HashGeneratorFcn: SHA256} }
+			sarCfg.Net.SASL.SCRAMClientGeneratorFunc = func() sarama.SCRAMClient { return &XDGSCRAMClient{HashGeneratorFcn: SHA256} }
 		case "SCRAM-SHA-512":
-			config.Net.SASL.SCRAMClientGeneratorFunc = func() sarama.SCRAMClient { return &XDGSCRAMClient{HashGeneratorFcn: SHA256} }
+			sarCfg.Net.SASL.SCRAMClientGeneratorFunc = func() sarama.SCRAMClient { return &XDGSCRAMClient{HashGeneratorFcn: SHA256} }
 		default:
 		}
-		config.Net.SASL.User = kfkCfg.Sasl.Username
-		config.Net.SASL.Password = kfkCfg.Sasl.Password
-		config.Net.SASL.GSSAPI = kfkCfg.Sasl.GSSAPI
+		sarCfg.Net.SASL.User = kfkCfg.Sasl.Username
+		sarCfg.Net.SASL.Password = kfkCfg.Sasl.Password
+		sarCfg.Net.SASL.GSSAPI = kfkCfg.Sasl.GSSAPI
 	}
-	if taskCfg.Earliest {
-		config.Consumer.Offsets.Initial = sarama.OffsetOldest
-	}
-	config.ChannelBufferSize = 1024
-	cg, err := sarama.NewConsumerGroup(strings.Split(kfkCfg.Brokers, ","), taskCfg.ConsumerGroup, config)
-	if err != nil {
-		return err
-	}
-	k.cg = cg
-	return nil
+	sarCfg.ChannelBufferSize = 1024
+	return
 }
 
 // kafka main loop
-func (k *KafkaSarama) Run(ctx context.Context) {
+func (k *KafkaSarama) Run() {
+	k.wgRun.Add(1)
+	defer k.wgRun.Done()
 	taskCfg := k.taskCfg
 LOOP_SARAMA:
 	for {
@@ -241,7 +255,7 @@ LOOP_SARAMA:
 		// `Consume` should be called inside an infinite loop, when a
 		// server-side rebalance happens, the consumer session will need to be
 		// recreated to get the new claims
-		if err := k.cg.Consume(ctx, []string{taskCfg.Topic}, handler); err != nil {
+		if err := k.cg.Consume(k.ctx, []string{taskCfg.Topic}, handler); err != nil {
 			if errors.Is(err, context.Canceled) {
 				util.Logger.Info("KafkaSarama.Run quit due to context has been canceled", zap.String("task", k.taskCfg.Name))
 				break LOOP_SARAMA
@@ -256,18 +270,18 @@ LOOP_SARAMA:
 			}
 		}
 	}
-	k.stopped <- struct{}{}
 }
 
-func (k *KafkaSarama) CommitMessages(ctx context.Context, msg *model.InputMessage) error {
+func (k *KafkaSarama) CommitMessages(msg *model.InputMessage) error {
 	k.sess.MarkOffset(msg.Topic, int32(msg.Partition), msg.Offset+1, "")
 	return nil
 }
 
 // Stop kafka consumer and close all connections
 func (k *KafkaSarama) Stop() error {
+	k.cancel()
 	k.cg.Close()
-	<-k.stopped
+	k.wgRun.Wait()
 	return nil
 }
 

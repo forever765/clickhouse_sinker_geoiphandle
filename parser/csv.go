@@ -18,6 +18,7 @@ import (
 	"bytes"
 	"encoding/csv"
 	"fmt"
+	"regexp"
 	"strconv"
 	"sync"
 	"time"
@@ -128,7 +129,7 @@ func (c *CsvMetric) GetDateTime(key string, nullable bool) (val interface{}) {
 			val = Epoch
 		}
 	} else {
-		val = UnixFloat(dd)
+		val = UnixFloat(dd, c.pp.timeUnit)
 	}
 	return
 }
@@ -206,7 +207,7 @@ func (c *CsvMetric) GetArray(key string, typ int) (val interface{}) {
 			var t time.Time
 			switch e.Type {
 			case gjson.Number:
-				t = UnixFloat(e.Num)
+				t = UnixFloat(e.Num, c.pp.timeUnit)
 			case gjson.String:
 				var err error
 				if t, err = c.pp.ParseDateTime(key, e.Str); err != nil {
@@ -224,6 +225,6 @@ func (c *CsvMetric) GetArray(key string, typ int) (val interface{}) {
 	return
 }
 
-func (c *CsvMetric) GetNewKeys(knownKeys *sync.Map, newKeys *sync.Map) bool {
+func (c *CsvMetric) GetNewKeys(knownKeys, newKeys *sync.Map, white, black *regexp.Regexp) bool {
 	return false
 }

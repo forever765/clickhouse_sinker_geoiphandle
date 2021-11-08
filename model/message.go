@@ -2,12 +2,14 @@ package model
 
 import (
 	"container/list"
+	"fmt"
 	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
 
+	"github.com/cespare/xxhash/v2"
 	"github.com/housepower/clickhouse_sinker/config"
 	"github.com/housepower/clickhouse_sinker/statistics"
 )
@@ -166,10 +168,19 @@ func PutRow(r *Row) {
 	rowPool.Put(r)
 }
 
-func MetricToRow(metric Metric, msg InputMessage, dims []*ColumnWithType) (row *Row) {
+func MetricToRow(metric Metric, msg *InputMessage, dims []*ColumnWithType, idxSeriesID int, nameKey string) (row *Row) {
 	row = GetRow()
-	for _, dim := range dims {
-		if strings.HasPrefix(dim.Name, "__kafka") {
+	var dig *xxhash.Digest
+	var labels []string
+	if idxSeriesID >= 0 {
+		dig = xxhash.New()
+	}
+	for i, dim := range dims {
+		if idxSeriesID >= 0 && i == idxSeriesID {
+			*row = append(*row, uint64(0))
+		} else if idxSeriesID >= 0 && i == idxSeriesID+1 {
+			*row = append(*row, "")
+		} else if strings.HasPrefix(dim.Name, "__kafka") {
 			if strings.HasSuffix(dim.Name, "_topic") {
 				*row = append(*row, msg.Topic)
 			} else if strings.HasSuffix(dim.Name, "_partition") {
@@ -180,7 +191,22 @@ func MetricToRow(metric Metric, msg InputMessage, dims []*ColumnWithType) (row *
 		} else {
 			val := GetValueByType(metric, dim)
 			*row = append(*row, val)
+			if idxSeriesID >= 0 && dim.Type == String && val != nil {
+				if labelVal := val.(string); labelVal != "" {
+					_, _ = dig.WriteString("###")
+					_, _ = dig.WriteString(dim.Name)
+					_, _ = dig.WriteString("###")
+					_, _ = dig.WriteString(labelVal)
+					if dim.Name != nameKey && dim.Name != "le" {
+						labels = append(labels, fmt.Sprintf(`"%s": "%s"`, dim.Name, labelVal))
+					}
+				}
+			}
 		}
+	}
+	if idxSeriesID >= 0 {
+		(*row)[idxSeriesID] = dig.Sum64()
+		(*row)[idxSeriesID+1] = fmt.Sprintf("{%s}", strings.Join(labels, ", "))
 	}
 	return
 }

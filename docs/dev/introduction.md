@@ -12,7 +12,7 @@ Refers to [design](./design.md) for how it works.
 - Uses native ClickHouse client-server TCP protocol, with higher performance than HTTP.
 - Easy to use and deploy, you don't need write any hard code, just care about the configuration file
 - Support multiple parsers: fastjson(recommended), gjson, csv.
-- Support multiple Kafka client: kafka-go(recommended), sarama.
+- Support multiple Kafka client: sarama(recommended), kafka-go.
 - Support multiple Kafka security mechanisms: SSL, SASL/PLAIN, SASL/SCRAM, SASL/GSSAPI and combinations of them.
 - Bulk insert (by config `bufferSize` and `flushInterval`).
 - Parse messages concurrently.
@@ -22,6 +22,7 @@ Refers to [design](./design.md) for how it works.
 - Tolerate replica single-point-failure.
 - At-least-once delivery guarantee.
 - Config management with local file or Nacos.
+- One clickhouse_sinker instance assign tasks to all instances in balance of message lag (by config `nacos-service-name`).
 
 ## Supported data types
 
@@ -30,6 +31,8 @@ Refers to [design](./design.md) for how it works.
 - [x] Decimal, Decimal32, Decimal64, Decimal128, Decimal256
 - [x] String, FixedString, LowCardinality(String)
 - [x] Date, DateTime, DateTime64. Assuming that all values of a field of kafka message has the same layout, and layouts of each field are unrelated. Automatically detect the layout from [these date layouts](https://github.com/housepower/clickhouse_sinker/blob/master/parser/parser.go) till the first successful detection and reuse that layout forever.
+- [x] UUID
+- [x] Enum
 - [x] Array(T), where T is one of above basic types
 - [x] Nullable(T), where T is one of above basic types
 - [x] [ElasticDateTime](https://www.elastic.co/guide/en/elasticsearch/reference/current/date.html) => Int64 (2019-12-16T12:10:30Z => 1576498230)
@@ -47,6 +50,8 @@ Note:
 | Decimal, ...         | 0.0           | Number                              | [decimal-value-ranges](https://clickhouse.tech/docs/en/sql-reference/data-types/decimal/#decimal-value-ranges) |
 | String, ...          | ""            | Bool, Number, String, Object, Array | N/A                                   |
 | Date, DateTime, ...  | EPOCH         | Number, String                      | [EPOCH,MaxUint32_seconds_since_epoch) |
+| UUID                 | "00000000-0000-0000-0000-000000000000" | String     | N/A                                   |
+| Enum                 | N/A           | String                              | N/A                                   |
 | Nullable(T)          | NULL          | (The same as T)                     | (The same as T)                       |
 | Array(T)             | []            | (The same as T)                     | (The same as T)                       |
 

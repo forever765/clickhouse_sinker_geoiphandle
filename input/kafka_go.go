@@ -20,6 +20,7 @@ import (
 	"crypto/tls"
 	"io"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/pkg/errors"
@@ -38,11 +39,14 @@ var _ Inputer = (*KafkaGo)(nil)
 
 // KafkaGo implements input.Inputer
 type KafkaGo struct {
-	cfg     *config.Config
-	taskCfg *config.TaskConfig
-	r       *kafka.Reader
-	stopped chan struct{}
-	putFn   func(msg model.InputMessage)
+	cfg       *config.Config
+	taskCfg   *config.TaskConfig
+	r         *kafka.Reader
+	ctx       context.Context
+	cancel    context.CancelFunc
+	wgRun     sync.WaitGroup
+	putFn     func(msg *model.InputMessage)
+	cleanupFn func()
 }
 
 // NewKafkaGo get instance of kafka reader
@@ -51,12 +55,13 @@ func NewKafkaGo() *KafkaGo {
 }
 
 // Init Initialise the kafka instance with configuration
-func (k *KafkaGo) Init(cfg *config.Config, taskCfg *config.TaskConfig, putFn func(msg model.InputMessage), cleanupFn func()) (err error) {
+func (k *KafkaGo) Init(cfg *config.Config, taskCfg *config.TaskConfig, putFn func(msg *model.InputMessage), cleanupFn func()) (err error) {
 	k.cfg = cfg
 	k.taskCfg = taskCfg
 	kfkCfg := &cfg.Kafka
-	k.stopped = make(chan struct{})
+	k.ctx, k.cancel = context.WithCancel(context.Background())
 	k.putFn = putFn
+	k.cleanupFn = cleanupFn
 	offset := kafka.LastOffset
 	if k.taskCfg.Earliest {
 		offset = kafka.FirstOffset
@@ -127,12 +132,14 @@ func (k *KafkaGo) Init(cfg *config.Config, taskCfg *config.TaskConfig, putFn fun
 }
 
 // kafka main loop
-func (k *KafkaGo) Run(ctx context.Context) {
+func (k *KafkaGo) Run() {
+	k.wgRun.Add(1)
+	defer k.wgRun.Done()
 LOOP_KAFKA_GO:
 	for {
 		var err error
 		var msg kafka.Message
-		if msg, err = k.r.FetchMessage(ctx); err != nil {
+		if msg, err = k.r.FetchMessage(k.ctx); err != nil {
 			if errors.Is(err, context.Canceled) {
 				util.Logger.Info("KafkaGo.Run quit due to context has been canceled", zap.String("task", k.taskCfg.Name))
 				break LOOP_KAFKA_GO
@@ -146,7 +153,7 @@ LOOP_KAFKA_GO:
 				continue
 			}
 		}
-		k.putFn(model.InputMessage{
+		k.putFn(&model.InputMessage{
 			Topic:     msg.Topic,
 			Partition: msg.Partition,
 			Key:       msg.Key,
@@ -155,11 +162,10 @@ LOOP_KAFKA_GO:
 			Timestamp: &msg.Time,
 		})
 	}
-	k.stopped <- struct{}{}
 }
 
-func (k *KafkaGo) CommitMessages(ctx context.Context, msg *model.InputMessage) (err error) {
-	if err = k.r.CommitMessages(ctx, kafka.Message{
+func (k *KafkaGo) CommitMessages(msg *model.InputMessage) (err error) {
+	if err = k.r.CommitMessages(context.Background(), kafka.Message{
 		Topic:     msg.Topic,
 		Partition: msg.Partition,
 		Offset:    msg.Offset,
@@ -172,10 +178,11 @@ func (k *KafkaGo) CommitMessages(ctx context.Context, msg *model.InputMessage) (
 
 // Stop kafka consumer and close all connections
 func (k *KafkaGo) Stop() error {
-	if k.r != nil {
-		k.r.Close()
-		<-k.stopped
-	}
+	k.cleanupFn()
+	// Note: a closed kafka-go client cannot commit offsets.
+	k.cancel()
+	k.r.Close()
+	k.wgRun.Wait()
 	return nil
 }
 
