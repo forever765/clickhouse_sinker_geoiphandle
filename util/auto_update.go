@@ -6,11 +6,13 @@ import (
 )
 
 // Auto update geoip database file every day
-func AddUpdateCronTask() {
+func AddUpdateCronTask(JobInterval string) {
 	c := cron.New()
-	c.AddFunc("@every 5s", func() {
-		Logger.Fatal("tick every 1 second")
-	})
-
+	c.AddFunc(JobInterval, haha)
 	c.Start()
+	select{}
+}
+
+func haha() {
+	Logger.Fatal("tick every 5 second")
 }

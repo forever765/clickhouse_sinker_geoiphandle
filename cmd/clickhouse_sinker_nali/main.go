@@ -139,7 +139,7 @@ func init() {
 	util.InitLogger(logPaths)
 	util.SetLogLevel(cmdOps.LogLevel)
 	util.Logger.Info(getVersion())
-	util.AddUpdateCronTask()
+	util.AddUpdateCronTask("@every 5s")
 	if cmdOps.ShowVer {
 		os.Exit(0)
 	}
