@@ -4,9 +4,9 @@ import (
 	"strings"
 
 	"github.com/Shopify/sarama"
-	"github.com/housepower/clickhouse_sinker/config"
-	"github.com/housepower/clickhouse_sinker/input"
-	"github.com/housepower/clickhouse_sinker/util"
+	"github.com/forever765/clickhouse_sinker_nali/config"
+	"github.com/forever765/clickhouse_sinker_nali/input"
+	"github.com/forever765/clickhouse_sinker_nali/util"
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
 )

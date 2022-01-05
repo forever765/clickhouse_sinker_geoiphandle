@@ -11,8 +11,10 @@ var (
 	HomePath string
 )
 
+// get it from config file
 func init() {
 	HomePath = os.Getenv("NALI_DB_HOME")
+	//HomePath = config
 	if HomePath == "" {
 		// homeDir, err := os.UserHomeDir()
 		// homeDir, _ := os.UserHomeDir()

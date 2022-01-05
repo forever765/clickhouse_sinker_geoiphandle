@@ -13,7 +13,7 @@ COPY --from=builder /app/nacos_publish_config /usr/local/bin/nacos_publish_confi
 COPY --from=builder /app/kafka_gen_log /usr/local/bin/kafka_gen_log
 COPY --from=builder /app/kafka_gen_metric /usr/local/bin/kafka_gen_metric
 
-# clickhouse_sinker gets config from local file "/etc/clickhouse_sinker.json" by default.
+# clickhouse_sinker_nali gets config from local file "/etc/clickhouse_sinker_nali.json" by default.
 # Customize behavior with following env variables:
 # - V
 # - LOG_LEVEL
@@ -29,6 +29,6 @@ COPY --from=builder /app/kafka_gen_metric /usr/local/bin/kafka_gen_metric
 # - NACOS_GROUP
 # - NACOS_DATAID
 # - NACOS_SERVICE_NAME
-# See cmd/clickhouse_sinker/main.go for details.
+# See cmd/clickhouse_sinker_nali/main.go for details.
 
 ENTRYPOINT ["/usr/local/bin/clickhouse_sinker"]

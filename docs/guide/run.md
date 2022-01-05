@@ -27,8 +27,8 @@ Let's follow up a piece of the systest script.
   - let's checkout `clickhouse_sinker`
 
   ```bash
-  $ git clone https://github.com/housepower/clickhouse_sinker.git
-  $ cd clickhouse_sinker
+  $ git clone https://github.com/forever765/clickhouse_sinker_nali.git
+  $ cd clickhouse_sinker_nali
   ```
 
   - let's start standalone clickhouse-server and kafka in container:
@@ -71,7 +71,7 @@ Let's follow up a piece of the systest script.
 * Run clickhouse_sinker
 
   ```bash
-  $ ./clickhouse_sinker --local-cfg-file docker/test_auto_schema.json
+  $ ./clickhouse_sinker_nali --local-cfg-file docker/test_auto_schema.json
   ```
 
 

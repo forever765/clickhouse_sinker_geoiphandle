@@ -21,7 +21,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/housepower/clickhouse_sinker/util"
+	"github.com/forever765/clickhouse_sinker_nali/util"
 
 	"github.com/pkg/errors"
 )
@@ -147,6 +147,7 @@ type TaskConfig struct {
 	BufferSize    int     `json:"bufferSize,omitempty"`
 	TimeZone      string  `json:"timeZone"`
 	TimeUnit      float64 `json:"timeUnit"`
+	GeoipHandle	bool
 }
 
 type Assignment struct {
@@ -215,51 +216,8 @@ func (cfg *Config) Normallize() (err error) {
 		cfg.Task = nil
 	}
 	for _, taskCfg := range cfg.Tasks {
-<<<<<<< HEAD
-		if taskCfg.KafkaClient == "" || (cfg.Kafka.Sasl.Enable && cfg.Kafka.Sasl.Username == "") {
-			// known limitations of kafka-go:
-			// - The Reader API is too high-level. There's no generation cleanup callback which sarama provides.
-			// - Doesn't support SASL/GSSAPI(Kerberos). https://github.com/segmentio/kafka-go/issues/539
-			taskCfg.KafkaClient = "sarama"
-		}
-		if taskCfg.Parser == "" || taskCfg.Parser == "json" {
-			taskCfg.Parser = "fastjson"
-		}
-
-		for i := range taskCfg.Dims {
-			if taskCfg.Dims[i].SourceName == "" {
-				taskCfg.Dims[i].SourceName = util.GetSourceName(taskCfg.Dims[i].Name)
-			}
-		}
-
-		if taskCfg.FlushInterval <= 0 {
-			taskCfg.FlushInterval = defaultFlushInterval
-		} else if taskCfg.FlushInterval > maxFlushInterval {
-			taskCfg.FlushInterval = maxFlushInterval
-		}
-		if taskCfg.BufferSize <= 0 {
-			taskCfg.BufferSize = defaultBufferSize
-		} else if taskCfg.BufferSize > MaxBufferSize {
-			taskCfg.BufferSize = MaxBufferSize
-		} else {
-			taskCfg.BufferSize = 1 << util.GetShift(taskCfg.BufferSize)
-		}
-		if taskCfg.TimeZone == "" {
-			taskCfg.TimeZone = defaultTimeZone
-		}
-		// if GeoipHandle not set, don't open it
-		if !taskCfg.GeoipHandle {
-			taskCfg.GeoipHandle = defaultGeoipHandle
-		}
-		if taskCfg.DynamicSchema.Enable {
-			if taskCfg.Parser != "fastjson" {
-				err = errors.Errorf("Parser %s doesn't support DynamicSchema", taskCfg.Parser)
-				return
-			}
-=======
 		if err = cfg.normallizeTask(taskCfg); err != nil {
 			return
->>>>>>> chsinker-upstream/master
 		}
 	}
 	switch strings.ToLower(cfg.LogLevel) {
@@ -326,6 +284,10 @@ func (cfg *Config) normallizeTask(taskCfg *TaskConfig) (err error) {
 			err = errors.Wrapf(err, "BlackList %s is invalid regexp", taskCfg.DynamicSchema.BlackList)
 			return
 		}
+	}
+	// if GeoipHandle not set, don't open it
+	if !taskCfg.GeoipHandle {
+		taskCfg.GeoipHandle = defaultGeoipHandle
 	}
 	return
 }

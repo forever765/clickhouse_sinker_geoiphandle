@@ -4,15 +4,15 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/housepower/clickhouse_sinker/util"
+	"github.com/forever765/clickhouse_sinker_nali/util"
 
-	"github.com/housepower/clickhouse_sinker/ipHandle/constant"
-	"github.com/housepower/clickhouse_sinker/ipHandle/pkg/cdn"
-	"github.com/housepower/clickhouse_sinker/ipHandle/pkg/dbif"
-	"github.com/housepower/clickhouse_sinker/ipHandle/pkg/geoip"
-	"github.com/housepower/clickhouse_sinker/ipHandle/pkg/ipip"
-	"github.com/housepower/clickhouse_sinker/ipHandle/pkg/qqwry"
-	"github.com/housepower/clickhouse_sinker/ipHandle/pkg/zxipv6wry"
+	"github.com/forever765/clickhouse_sinker_nali/ipHandle/constant"
+	"github.com/forever765/clickhouse_sinker_nali/ipHandle/pkg/cdn"
+	"github.com/forever765/clickhouse_sinker_nali/ipHandle/pkg/dbif"
+	"github.com/forever765/clickhouse_sinker_nali/ipHandle/pkg/geoip"
+	"github.com/forever765/clickhouse_sinker_nali/ipHandle/pkg/ipip"
+	"github.com/forever765/clickhouse_sinker_nali/ipHandle/pkg/qqwry"
+	"github.com/forever765/clickhouse_sinker_nali/ipHandle/pkg/zxipv6wry"
 )
 
 var (

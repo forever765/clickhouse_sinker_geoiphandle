@@ -3,9 +3,9 @@ package input
 import (
 	"fmt"
 
-	"github.com/housepower/clickhouse_sinker/config"
-	"github.com/housepower/clickhouse_sinker/model"
-	"github.com/housepower/clickhouse_sinker/util"
+	"github.com/forever765/clickhouse_sinker_nali/config"
+	"github.com/forever765/clickhouse_sinker_nali/model"
+	"github.com/forever765/clickhouse_sinker_nali/util"
 )
 
 const (

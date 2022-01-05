@@ -1,7 +1,7 @@
 package rcm
 
 import (
-	"github.com/housepower/clickhouse_sinker/config"
+	"github.com/forever765/clickhouse_sinker_nali/config"
 )
 
 // RemoteConfManager can be implemented by many backends: Nacos, Consul, etcd, ZooKeeper...

@@ -10,8 +10,8 @@ import (
 	"time"
 
 	"github.com/cespare/xxhash/v2"
-	"github.com/housepower/clickhouse_sinker/config"
-	"github.com/housepower/clickhouse_sinker/statistics"
+	"github.com/forever765/clickhouse_sinker_nali/config"
+	"github.com/forever765/clickhouse_sinker_nali/statistics"
 )
 
 var (

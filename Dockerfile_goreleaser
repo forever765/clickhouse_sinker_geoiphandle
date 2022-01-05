@@ -20,6 +20,6 @@ ADD dist/nacos_publish_config_linux_amd64/nacos_publish_config /usr/local/bin/na
 # - NACOS_GROUP
 # - NACOS_DATAID
 # - NACOS_SERVICE_NAME
-# See cmd/clickhouse_sinker/main.go for details.
+# See cmd/clickhouse_sinker_nali/main.go for details.
 
 ENTRYPOINT ["/usr/local/bin/clickhouse_sinker"]

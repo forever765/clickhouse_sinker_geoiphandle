@@ -127,7 +127,7 @@
       }
     ],
 
-    // if it's specified, clickhouse_sinker will detect table schema instead of using the fixed schema given by "dims".
+    // if it's specified, clickhouse_sinker_nali will detect table schema instead of using the fixed schema given by "dims".
     "autoSchema" : true,
     // these columns will be excluded from the detected table schema. This takes effect only if "autoSchema" is true.
     "excludeColumns": [],

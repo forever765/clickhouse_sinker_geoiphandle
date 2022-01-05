@@ -20,8 +20,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/housepower/clickhouse_sinker/model"
-	"github.com/housepower/clickhouse_sinker/util"
+	"github.com/forever765/clickhouse_sinker_nali/model"
+	"github.com/forever765/clickhouse_sinker_nali/util"
 	"github.com/pkg/errors"
 )
 

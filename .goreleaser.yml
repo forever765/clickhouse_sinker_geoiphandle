@@ -7,7 +7,7 @@ before:
     # you may remove this if you don't need go generate
     - go generate ./...
 builds:
-  - id: clickhouse_sinker
+  - id: clickhouse_sinker_nali
     env:
       - CGO_ENABLED=0
     goos:
@@ -15,8 +15,8 @@ builds:
     goarch:
       - amd64
       - arm64
-    main: cmd/clickhouse_sinker/main.go
-    binary: clickhouse_sinker
+    main: cmd/clickhouse_sinker_nali/main.go
+    binary: clickhouse_sinker_nali
   - id: nacos_publish_config
     env:
       - CGO_ENABLED=0

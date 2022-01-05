@@ -47,7 +47,7 @@ import (
 	"github.com/Shopify/sarama"
 	"github.com/bytedance/sonic"
 	"github.com/google/gops/agent"
-	"github.com/housepower/clickhouse_sinker/util"
+	"github.com/forever765/clickhouse_sinker_nali/util"
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
 )

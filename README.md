@@ -1,24 +1,26 @@
-# clickhouse_sinker_nali
+# Clickhouse_Sinker_Nali
 
-clickhouse_sinker is a sinker program that transfer kafka message into [ClickHouse](https://clickhouse.yandex/).
+Clickhouse_Sinker is a sinker program that transfer kafka message into [ClickHouse](https://clickhouse.yandex/).
+Clickhouse_Sinker_Nali 
 
-[clickhouse_sinker docs](https://housepower.github.io/clickhouse_sinker/dev/introduction.html#features)  
+[clickhouse_sinker docs](https://housepower.github.io/clickhouse_sinker_nali/dev/introduction.html#features)  
 
 <br>
 
-- clickhouse_sinker_nali base clickhouse_sinker v1.91
-
-- #### GeoIP information provide from [nali](https://github.com/zu1k/nali)
+- #### Clickhouse_Sinker_Nali based on [Clickhouse_Sinker v2.2.0](https://github.com/forever765/clickhouse_sinker)
+- #### GeoIP information provide from [Nali v0.3.5](https://github.com/zu1k/nali)
+- #### Import robfig/cron/v3 package to auto update geoip database file every day
 
 ## Processing flow
 ##### Pmacctd --> Kafka --> ClickHouse_Sinker_nali
-1. Get ip_src and ip_dst geo info
-2. Reduce unknown on class field
-3. Add "loc_src/loc_dst/isp_src/isp_dst" field to kafka
-4. If enum8 or enum16 type field exists in ClickHouse, ck_sinker will treat it as a string type
+1. Get message from Kafka
+2. Get ip_src and ip_dst geo info from Nali module
+3. Reduce unknown on class field
+4. Add "loc_src/loc_dst/isp_src/isp_dst" field to message
+5. Write messages to Clickhouse
 
 ## Build && Run
-`go get -u github.com/housepower/clickhouse_sinker/...`
+`go get -u github.com/forever765/clickhouse_sinker_nali/...`
 `make build`
 
 ## Quick Start

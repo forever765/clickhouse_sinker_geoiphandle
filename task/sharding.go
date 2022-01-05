@@ -9,10 +9,10 @@ import (
 
 	"github.com/cespare/xxhash/v2"
 	"github.com/fagongzi/goetty"
-	"github.com/housepower/clickhouse_sinker/model"
-	"github.com/housepower/clickhouse_sinker/pool"
-	"github.com/housepower/clickhouse_sinker/statistics"
-	"github.com/housepower/clickhouse_sinker/util"
+	"github.com/forever765/clickhouse_sinker_nali/model"
+	"github.com/forever765/clickhouse_sinker_nali/pool"
+	"github.com/forever765/clickhouse_sinker_nali/statistics"
+	"github.com/forever765/clickhouse_sinker_nali/util"
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
 )

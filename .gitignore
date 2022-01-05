@@ -11,6 +11,6 @@ package-lock.json
 dist
 vendor
 *_gen_log
-clickhouse_sinker
+cmd/clickhouse_sinker_nali
 kafka_gen_metric
 nacos_publish_config

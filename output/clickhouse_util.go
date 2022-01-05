@@ -6,9 +6,9 @@ import (
 
 	"github.com/ClickHouse/clickhouse-go"
 	"github.com/RoaringBitmap/roaring"
-	"github.com/housepower/clickhouse_sinker/model"
-	"github.com/housepower/clickhouse_sinker/pool"
-	"github.com/housepower/clickhouse_sinker/util"
+	"github.com/forever765/clickhouse_sinker_nali/model"
+	"github.com/forever765/clickhouse_sinker_nali/pool"
+	"github.com/forever765/clickhouse_sinker_nali/util"
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
 )

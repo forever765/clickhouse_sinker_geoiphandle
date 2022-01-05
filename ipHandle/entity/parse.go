@@ -3,9 +3,9 @@ package entity
 import (
 	"sort"
 
-	"github.com/housepower/clickhouse_sinker/ipHandle/db"
-	"github.com/housepower/clickhouse_sinker/ipHandle/pkg/dbif"
-	"github.com/housepower/clickhouse_sinker/ipHandle/re"
+	"github.com/forever765/clickhouse_sinker_nali/ipHandle/db"
+	"github.com/forever765/clickhouse_sinker_nali/ipHandle/pkg/dbif"
+	"github.com/forever765/clickhouse_sinker_nali/ipHandle/re"
 )
 
 // ParseLine parse a line into entities

@@ -9,7 +9,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/housepower/clickhouse_sinker/util"
+	"github.com/forever765/clickhouse_sinker_nali/util"
 )
 
 type CDN struct {

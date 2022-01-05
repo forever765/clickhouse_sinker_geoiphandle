@@ -27,11 +27,11 @@ import (
 
 	jsonvalue "github.com/Andrew-M-C/go.jsonvalue"
 	"github.com/Shopify/sarama"
-	"github.com/housepower/clickhouse_sinker/config"
-	"github.com/housepower/clickhouse_sinker/ipHandle/entity"
-	"github.com/housepower/clickhouse_sinker/model"
-	"github.com/housepower/clickhouse_sinker/statistics"
-	"github.com/housepower/clickhouse_sinker/util"
+	"github.com/forever765/clickhouse_sinker_nali/config"
+	"github.com/forever765/clickhouse_sinker_nali/ipHandle/entity"
+	"github.com/forever765/clickhouse_sinker_nali/model"
+	"github.com/forever765/clickhouse_sinker_nali/statistics"
+	"github.com/forever765/clickhouse_sinker_nali/util"
 	"github.com/pkg/errors"
 	"github.com/xdg-go/scram"
 	"go.uber.org/zap"
@@ -164,7 +164,7 @@ func (h MyConsumerGroupHandler) ConsumeClaim(sess sarama.ConsumerGroupSession, c
 		if h.k.taskCfg.GeoipHandle {
 			msg.Value = HandleMsg(msg.Value)
 		}
-		h.k.putFn(model.InputMessage{
+		h.k.putFn(&model.InputMessage{
 			Topic:     msg.Topic,
 			Partition: int(msg.Partition),
 			Key:       msg.Key,

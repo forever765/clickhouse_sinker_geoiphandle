@@ -19,7 +19,7 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/housepower/clickhouse_sinker/util"
+	"github.com/forever765/clickhouse_sinker_nali/util"
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/collectors"
@@ -228,7 +228,7 @@ func (p *Pusher) Stop() {
 	if err := p.pusher.Delete(); err != nil {
 		err = errors.Wrapf(err, "")
 		util.Logger.Error("failed to delete metric group", zap.String("pushgateway", p.pgwAddrs[p.inUseAddr]),
-			zap.String("job", "clickhouse_sinker"), zap.String("instance", p.instance), zap.Error(err))
+			zap.String("job", "clickhouse_sinker_nali"), zap.String("instance", p.instance), zap.Error(err))
 	}
 	util.Logger.Info("stopped metric pusher")
 }
@@ -240,7 +240,7 @@ func (p *Pusher) reconnect() {
 	} else {
 		nextAddr = (p.inUseAddr + 1) % len(p.pgwAddrs)
 	}
-	p.pusher = push.New(p.pgwAddrs[nextAddr], "clickhouse_sinker").
+	p.pusher = push.New(p.pgwAddrs[nextAddr], "clickhouse_sinker_nali").
 		Collector(ConsumeMsgsTotal).
 		Collector(ConsumeMsgsErrorTotal).
 		Collector(ParseMsgsErrorTotal).

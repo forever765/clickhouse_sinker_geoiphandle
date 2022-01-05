@@ -5,7 +5,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/housepower/clickhouse_sinker/ipHandle/pkg/common"
+	"github.com/forever765/clickhouse_sinker_nali/ipHandle/pkg/common"
 )
 
 func Download(filePath string) (data []byte, err error) {

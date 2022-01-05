@@ -4,7 +4,7 @@ import (
 	"strings"
 
 	"github.com/fatih/color"
-	"github.com/housepower/clickhouse_sinker/ipHandle/pkg/dbif"
+	"github.com/forever765/clickhouse_sinker_nali/ipHandle/pkg/dbif"
 )
 
 type EntityType uint

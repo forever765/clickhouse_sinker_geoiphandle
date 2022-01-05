@@ -10,8 +10,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/housepower/clickhouse_sinker/ipHandle/pkg/common"
-	"github.com/housepower/clickhouse_sinker/util"
+	"github.com/forever765/clickhouse_sinker_nali/ipHandle/pkg/common"
+	"github.com/forever765/clickhouse_sinker_nali/util"
 	"golang.org/x/text/encoding/simplifiedchinese"
 )
 

@@ -3,11 +3,11 @@ package dbif
 import (
 	"fmt"
 
-	"github.com/housepower/clickhouse_sinker/ipHandle/pkg/cdn"
-	"github.com/housepower/clickhouse_sinker/ipHandle/pkg/geoip"
-	"github.com/housepower/clickhouse_sinker/ipHandle/pkg/ipip"
-	"github.com/housepower/clickhouse_sinker/ipHandle/pkg/qqwry"
-	"github.com/housepower/clickhouse_sinker/ipHandle/pkg/zxipv6wry"
+	"github.com/forever765/clickhouse_sinker_nali/ipHandle/pkg/cdn"
+	"github.com/forever765/clickhouse_sinker_nali/ipHandle/pkg/geoip"
+	"github.com/forever765/clickhouse_sinker_nali/ipHandle/pkg/ipip"
+	"github.com/forever765/clickhouse_sinker_nali/ipHandle/pkg/qqwry"
+	"github.com/forever765/clickhouse_sinker_nali/ipHandle/pkg/zxipv6wry"
 )
 
 type QueryType uint

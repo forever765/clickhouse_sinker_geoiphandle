@@ -30,13 +30,13 @@ import (
 	"sync"
 	"time"
 
-	"github.com/housepower/clickhouse_sinker/config"
-	cm "github.com/housepower/clickhouse_sinker/config_manager"
-	"github.com/housepower/clickhouse_sinker/health"
-	"github.com/housepower/clickhouse_sinker/pool"
-	"github.com/housepower/clickhouse_sinker/statistics"
-	"github.com/housepower/clickhouse_sinker/task"
-	"github.com/housepower/clickhouse_sinker/util"
+	"github.com/forever765/clickhouse_sinker_nali/config"
+	cm "github.com/forever765/clickhouse_sinker_nali/config_manager"
+	"github.com/forever765/clickhouse_sinker_nali/health"
+	"github.com/forever765/clickhouse_sinker_nali/pool"
+	"github.com/forever765/clickhouse_sinker_nali/statistics"
+	"github.com/forever765/clickhouse_sinker_nali/task"
+	"github.com/forever765/clickhouse_sinker_nali/util"
 	"go.uber.org/zap"
 
 	_ "github.com/ClickHouse/clickhouse-go"
@@ -79,9 +79,11 @@ func initCmdOptions() {
 	cmdOps = CmdOptions{
 		ShowVer:          false,
 		HTTPPort:         21888, // 0 menas a randomly OS chosen port
+		LogLevel:         "info",
+		LogPaths:         "stdout,/var/log/ch_sinker/clickhouse_sinker_nali.log",
 		PushGatewayAddrs: "",
 		PushInterval:     10,
-		LocalCfgFile:     "/etc/clickhouse_sinker.json",
+		LocalCfgFile:     "/etc/clickhouse_sinker_nali.json",
 		NacosAddr:        "127.0.0.1:8848",
 		NacosNamespaceID: "",
 		NacosGroup:       "DEFAULT_GROUP",
@@ -137,6 +139,7 @@ func init() {
 	util.InitLogger(logPaths)
 	util.SetLogLevel(cmdOps.LogLevel)
 	util.Logger.Info(getVersion())
+	util.AddUpdateCronTask()
 	if cmdOps.ShowVer {
 		os.Exit(0)
 	}
@@ -149,14 +152,14 @@ func init() {
 }
 
 func main() {
-	util.Run("clickhouse_sinker", func() error {
+	util.Run("clickhouse_sinker_nali", func() error {
 		// Initialize http server for metrics and debug
 		mux := http.NewServeMux()
 		mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 			_, _ = w.Write([]byte(`
-				<html><head><title>ClickHouse Sinker</title></head>
+				<html><head><title>ClickHouse Sinker Nali</title></head>
 				<body>
-					<h1>ClickHouse Sinker</h1>
+					<h1>ClickHouse Sinker Nali</h1>
 					<p><a href="/metrics">Metrics</a></p>
 					<p><a href="/ready">Ready</a></p>
 					<p><a href="/ready?full=1">Ready Full</a></p>
@@ -480,7 +483,7 @@ func (s *Sinker) applyAnotherConfig(newCfg *config.Config) (err error) {
 		}
 		sort.Strings(tasksToStop)
 		// 2. Stop tasks in parallel found at the previous step.
-		// They must drain flying batchs as quickly as possible to allow another clickhouse_sinker
+		// They must drain flying batchs as quickly as possible to allow another clickhouse_sinker_nali
 		// instance take over partitions safely.
 		var wg sync.WaitGroup
 		for _, taskName := range tasksToStop {
