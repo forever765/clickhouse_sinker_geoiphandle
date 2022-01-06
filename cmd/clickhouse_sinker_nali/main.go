@@ -60,6 +60,11 @@ type CmdOptions struct {
 	NacosServiceName string // participate in assignment management if not empty
 }
 
+type MyConsumerGroupHandler struct {
+	taskCfg   *config.TaskConfig
+}
+var h MyConsumerGroupHandler
+
 var (
 	//goreleaser fill following info per https://goreleaser.com/customization/build/.
 	version = "None"
@@ -78,9 +83,9 @@ func initCmdOptions() {
 	// 1. Set options to default value.
 	cmdOps = CmdOptions{
 		ShowVer:          false,
-		HTTPPort:         21888, // 0 menas a randomly OS chosen port
-		LogLevel:         "info",
-		LogPaths:         "stdout,/var/log/ch_sinker/clickhouse_sinker_nali.log",
+		HTTPPort:         h.taskCfg.SinkerListenPort,
+		LogLevel:         h.taskCfg.LogLevel,
+		LogPaths:         h.taskCfg.LogPath,
 		PushGatewayAddrs: "",
 		PushInterval:     10,
 		LocalCfgFile:     "/etc/clickhouse_sinker_nali.json",
@@ -197,16 +202,14 @@ func main() {
 		}()
 
 		// Auto update geoip db file cron job
-		type MyConsumerGroupHandler struct {
-			taskCfg   *config.TaskConfig
-		}
-		var h MyConsumerGroupHandler
+		util.Logger.Info("111")
 		if h.taskCfg.AutoUpdateGeoIPDB != "" {
+			util.Logger.Info("hahaha",h.taskCfg.AutoUpdateGeoIPDB)
 			util.AddUpdateCronTask(h.taskCfg.AutoUpdateGeoIPDB)
 		} else {
 			util.Logger.Info("AutoUpdateGeoIPDB not set, skip add cron job")
 		}
-
+		util.Logger.Info("888")
 		var rcm cm.RemoteConfManager
 		var properties map[string]interface{}
 		if cmdOps.NacosDataID != "" {

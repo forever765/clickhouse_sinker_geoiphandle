@@ -1,7 +1,6 @@
 package util
 
 import (
-	"fmt"
 	"github.com/forever765/clickhouse_sinker_nali/ipHandle/constant"
 	"github.com/robfig/cron/v3"
 	"go.uber.org/zap"
@@ -17,6 +16,7 @@ var (
 
 // Auto update geoip database file every day
 func AddUpdateCronTask(JobInterval string) {
+	Logger.Info("9999")
 	c := cron.New()
 	c.AddFunc(JobInterval, DoUpdate)
 	c.Start()
@@ -25,7 +25,6 @@ func AddUpdateCronTask(JobInterval string) {
 }
 
 func DoUpdate() {
-	fmt.Println("haha")
 	startTime := time.Now().UnixNano()
 	QqwryDownload(QQWryPath)
 	Zxipv6wry_Download(ZXIPv6WryPath)

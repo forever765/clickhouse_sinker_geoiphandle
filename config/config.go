@@ -17,6 +17,7 @@ package config
 
 import (
 	"encoding/json"
+	"github.com/jackc/pgx/v4"
 	"io/ioutil"
 	"regexp"
 	"strings"
@@ -34,8 +35,8 @@ type Config struct {
 	Tasks      []*TaskConfig
 	Assignment Assignment
 	LogLevel   string
-	logPaths   string
-	sinkerListenPort int
+	LogPaths   string
+	SinkerListenPort int
 }
 
 // KafkaConfig configuration parameters
@@ -151,6 +152,9 @@ type TaskConfig struct {
 	TimeUnit      float64 `json:"timeUnit"`
 	GeoipHandle	bool
 	AutoUpdateGeoIPDB	string
+	LogLevel	string
+	LogPath		string
+	SinkerListenPort	int
 }
 
 type Assignment struct {
