@@ -3,9 +3,6 @@ package util
 import (
 	"fmt"
 	"github.com/forever765/clickhouse_sinker_nali/ipHandle/constant"
-	"github.com/forever765/clickhouse_sinker_nali/ipHandle/pkg/cdn"
-	"github.com/forever765/clickhouse_sinker_nali/ipHandle/pkg/qqwry"
-	"github.com/forever765/clickhouse_sinker_nali/ipHandle/pkg/zxipv6wry"
 	"github.com/robfig/cron/v3"
 	"go.uber.org/zap"
 	"path/filepath"
@@ -30,9 +27,9 @@ func AddUpdateCronTask(JobInterval string) {
 func DoUpdate() {
 	fmt.Println("haha")
 	startTime := time.Now().UnixNano()
-	qqwry.Download(QQWryPath)
-	zxipv6wry.Download(ZXIPv6WryPath)
-	cdn.Download(CDNPath)
+	QqwryDownload(QQWryPath)
+	Zxipv6wry_Download(ZXIPv6WryPath)
+	CdnDownload(CDNPath)
 	endTime := time.Now().UnixNano()
 	Logger.Info("Update geoip db done, Elapsed time: ", zap.Float64("", float64(endTime-startTime)/1000000))
 }
