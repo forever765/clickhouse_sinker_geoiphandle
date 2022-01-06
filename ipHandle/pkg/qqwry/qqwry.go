@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net"
 	"os"
 	"strings"
@@ -26,7 +25,7 @@ func NewQQwry(filePath string) QQwry {
 
 	_, err := os.Stat(filePath)
 	if err != nil && os.IsNotExist(err) {
-		log.Println("文件不存在，尝试从网络获取最新纯真 IP 库")
+		util.Logger.Info("文件不存在，尝试从网络获取最新纯真 IP 库")
 		fileData, err = Download(filePath)
 		if err != nil {
 			os.Exit(1)

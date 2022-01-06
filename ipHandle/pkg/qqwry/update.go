@@ -4,8 +4,9 @@ import (
 	"bytes"
 	"compress/zlib"
 	"encoding/binary"
+	"github.com/forever765/clickhouse_sinker_nali/util"
+	"go.uber.org/zap"
 	"io/ioutil"
-	"log"
 	"net/http"
 
 	"github.com/forever765/clickhouse_sinker_nali/ipHandle/pkg/common"
@@ -14,13 +15,13 @@ import (
 func Download(filePath string) (data []byte, err error) {
 	data, err = getData()
 	if err != nil {
-		log.Printf("纯真IP库下载失败，请手动下载解压后保存到本地: %s \n", filePath)
-		log.Println("下载链接： https://qqwry.mirror.noc.one/qqwry.rar")
+		util.Logger.Info("纯真IP库下载失败，请手动下载解压后保存到本地: ", zap.String("",filePath))
+		util.Logger.Info("\n下载链接： https://qqwry.mirror.noc.one/qqwry.rar")
 		return
 	}
 	common.ExistThenRemove(filePath)
 	if err = ioutil.WriteFile(filePath, data, 0644); err == nil {
-		log.Printf("已将最新的 纯真IP库 保存到本地: %s ", filePath)
+		util.Logger.Info("已将最新的 纯真IP库 保存到本地: ", zap.String("",filePath))
 	}
 	return
 }

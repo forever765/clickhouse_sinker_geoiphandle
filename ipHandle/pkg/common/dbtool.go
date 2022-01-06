@@ -1,7 +1,8 @@
 package common
 
 import (
-	"log"
+	"github.com/forever765/clickhouse_sinker_nali/util"
+	"go.uber.org/zap"
 	"os"
 )
 
@@ -17,7 +18,7 @@ func ExistThenRemove(filePath string) {
 	if err == nil {
 		err = os.Remove(filePath)
 		if err != nil {
-			log.Fatalln("旧文件删除失败", err.Error())
+			util.Logger.Fatal("旧文件删除失败", zap.Error(err))
 			os.Exit(1)
 		}
 	}

@@ -139,7 +139,6 @@ func init() {
 	util.InitLogger(logPaths)
 	util.SetLogLevel(cmdOps.LogLevel)
 	util.Logger.Info(getVersion())
-	util.AddUpdateCronTask("@every 5s")
 	if cmdOps.ShowVer {
 		os.Exit(0)
 	}
@@ -191,12 +190,22 @@ func main() {
 		httpPort = util.GetNetAddrPort(listener.Addr())
 		httpAddr = fmt.Sprintf("%s:%d", selfIP, httpPort)
 		util.Logger.Info(fmt.Sprintf("Run http server at http://%s/", httpAddr))
-
 		go func() {
 			if err := http.Serve(listener, mux); err != nil {
 				util.Logger.Error("http.ListenAndServe failed", zap.Error(err))
 			}
 		}()
+
+		// Auto update geoip db file cron job
+		type MyConsumerGroupHandler struct {
+			taskCfg   *config.TaskConfig
+		}
+		var h MyConsumerGroupHandler
+		if h.taskCfg.AutoUpdateGeoIPDB != "" {
+			util.AddUpdateCronTask(h.taskCfg.AutoUpdateGeoIPDB)
+		} else {
+			util.Logger.Info("AutoUpdateGeoIPDB not set, skip add cron job")
+		}
 
 		var rcm cm.RemoteConfManager
 		var properties map[string]interface{}

@@ -148,6 +148,7 @@ type TaskConfig struct {
 	TimeZone      string  `json:"timeZone"`
 	TimeUnit      float64 `json:"timeUnit"`
 	GeoipHandle	bool
+	AutoUpdateGeoIPDB	string
 }
 
 type Assignment struct {
@@ -163,6 +164,7 @@ const (
 	maxFlushInterval          = 600
 	defaultFlushInterval      = 5
 	defaultGeoipHandle        = false
+	defaultAutoUpdateGeoIPDB  = ""
 	defaultTimeZone           = "Local"
 	defaultLogLevel           = "info"
 	defaultKerberosConfigPath = "/etc/krb5.conf"
@@ -288,6 +290,10 @@ func (cfg *Config) normallizeTask(taskCfg *TaskConfig) (err error) {
 	// if GeoipHandle not set, don't open it
 	if !taskCfg.GeoipHandle {
 		taskCfg.GeoipHandle = defaultGeoipHandle
+	}
+	// if AutoUpdateGeoIPDB not set, don't add cron job
+	if taskCfg.AutoUpdateGeoIPDB == "" {
+		taskCfg.AutoUpdateGeoIPDB = defaultAutoUpdateGeoIPDB
 	}
 	return
 }

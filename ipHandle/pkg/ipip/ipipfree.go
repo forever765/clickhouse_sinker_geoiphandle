@@ -2,6 +2,7 @@ package ipip
 
 import (
 	"fmt"
+	"go.uber.org/zap"
 	"log"
 	"os"
 
@@ -16,8 +17,8 @@ type IPIPFree struct {
 func NewIPIPFree(filePath string) IPIPFree {
 	_, err := os.Stat(filePath)
 	if err != nil && os.IsNotExist(err) {
-		log.Printf("IPIP数据库不存在，请手动下载解压后保存到本地: %s \n", filePath)
-		log.Println("下载链接： https://www.ipip.net/product/ip.html")
+		util.Logger.Info("IPIP数据库不存在，请手动下载解压后保存到本地: ", zap.String("", filePath))
+		util.Logger.Info("\n下载链接： https://www.ipip.net/product/ip.html")
 		os.Exit(1)
 		return IPIPFree{}
 	} else {

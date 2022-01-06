@@ -3,6 +3,7 @@ package geoip
 import (
 	"errors"
 	"fmt"
+	"go.uber.org/zap"
 	"log"
 	"net"
 	"os"
@@ -21,7 +22,7 @@ func NewGeoIP(filePath string) (geoip GeoIP) {
 	// 判断文件是否存在
 	_, err := os.Stat(filePath)
 	if err != nil && os.IsNotExist(err) {
-		log.Println("文件不存在，请自行下载 Geoip2 City库，并保存在", filePath)
+		util.Logger.Error("文件不存在，请自行下载 Geoip2 City库，并保存在", zap.String("", filePath))
 		os.Exit(1)
 	} else {
 		db, err := geoip2.Open(filePath)

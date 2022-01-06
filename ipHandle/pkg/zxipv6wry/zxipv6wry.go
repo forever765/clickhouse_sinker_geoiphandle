@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"math/big"
 	"net"
 	"os"
@@ -26,7 +25,7 @@ func NewZXwry(filePath string) ZXwry {
 
 	_, err := os.Stat(filePath)
 	if err != nil && os.IsNotExist(err) {
-		log.Println("文件不存在，尝试从网络获取最新ZX IPv6数据库")
+		util.Logger.Info("文件不存在，尝试从网络获取最新ZX IPv6数据库")
 		fileData, err = Download(filePath)
 		if err != nil {
 			os.Exit(1)

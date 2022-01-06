@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"os"
 	"strings"
 
@@ -33,7 +32,7 @@ func NewCDN(filePath string) *CDN {
 
 	_, err := os.Stat(filePath)
 	if err != nil && os.IsNotExist(err) {
-		log.Println("文件不存在，尝试从网络获取最新CDN数据库")
+		util.Logger.Info("文件不存在，尝试从网络获取最新CDN数据库")
 		cdnData, err = Download(filePath)
 		if err != nil {
 			os.Exit(1)
