@@ -92,12 +92,6 @@ func GetIPDBbyName(name string) (db dbif.DB) {
 	}
 }
 
-func Update() {
-	qqwry.Download(QQWryPath)
-	zxipv6wry.Download(ZXIPv6WryPath)
-	cdn.Download(CDNPath)
-}
-
 func Find(typ dbif.QueryType, query string) string {
 	if result, found := queryCache[query]; found {
 		return result
