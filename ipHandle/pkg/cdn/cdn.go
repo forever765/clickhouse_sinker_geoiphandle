@@ -33,7 +33,7 @@ func NewCDN(filePath string) *CDN {
 	_, err := os.Stat(filePath)
 	if err != nil && os.IsNotExist(err) {
 		util.Logger.Info("文件不存在，尝试从网络获取最新CDN数据库")
-		cdnData, err = Download(filePath)
+		cdnData, err = util.CdnDownload(filePath)
 		if err != nil {
 			os.Exit(1)
 		}

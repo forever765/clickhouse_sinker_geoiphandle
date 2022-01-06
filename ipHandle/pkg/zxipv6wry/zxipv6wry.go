@@ -26,7 +26,7 @@ func NewZXwry(filePath string) ZXwry {
 	_, err := os.Stat(filePath)
 	if err != nil && os.IsNotExist(err) {
 		util.Logger.Info("文件不存在，尝试从网络获取最新ZX IPv6数据库")
-		fileData, err = Download(filePath)
+		fileData, err = util.Zxipv6wry_Download(filePath)
 		if err != nil {
 			os.Exit(1)
 		}
