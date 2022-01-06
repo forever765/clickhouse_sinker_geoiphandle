@@ -17,7 +17,6 @@ package config
 
 import (
 	"encoding/json"
-	"github.com/jackc/pgx/v4"
 	"io/ioutil"
 	"regexp"
 	"strings"

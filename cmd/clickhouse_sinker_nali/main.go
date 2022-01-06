@@ -204,7 +204,7 @@ func main() {
 		// Auto update geoip db file cron job
 		util.Logger.Info("111")
 		if h.taskCfg.AutoUpdateGeoIPDB != "" {
-			util.Logger.Info("hahaha",h.taskCfg.AutoUpdateGeoIPDB)
+			util.Logger.Info("hahaha", zap.String("",h.taskCfg.AutoUpdateGeoIPDB))
 			util.AddUpdateCronTask(h.taskCfg.AutoUpdateGeoIPDB)
 		} else {
 			util.Logger.Info("AutoUpdateGeoIPDB not set, skip add cron job")
