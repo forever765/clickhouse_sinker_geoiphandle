@@ -34,6 +34,8 @@ type Config struct {
 	Tasks      []*TaskConfig
 	Assignment Assignment
 	LogLevel   string
+	logPaths   string
+	sinkerListenPort int
 }
 
 // KafkaConfig configuration parameters

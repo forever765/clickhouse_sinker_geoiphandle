@@ -1,10 +1,9 @@
 package db
 
 import (
+	"github.com/forever765/clickhouse_sinker_nali/util"
 	"os"
 	"path/filepath"
-
-	"github.com/forever765/clickhouse_sinker_nali/util"
 
 	"github.com/forever765/clickhouse_sinker_nali/ipHandle/constant"
 	"github.com/forever765/clickhouse_sinker_nali/ipHandle/pkg/cdn"
