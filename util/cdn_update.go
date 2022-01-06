@@ -1,11 +1,10 @@
 package util
 
 import (
+	"github.com/forever765/clickhouse_sinker_nali/ipHandle/pkg/common"
 	"go.uber.org/zap"
 	"io/ioutil"
 	"net/http"
-
-	"github.com/forever765/clickhouse_sinker_nali/ipHandle/pkg/common"
 )
 
 func CdnDownload(filePath string) (data []byte, err error) {

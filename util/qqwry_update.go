@@ -4,11 +4,10 @@ import (
 	"bytes"
 	"compress/zlib"
 	"encoding/binary"
+	"github.com/forever765/clickhouse_sinker_nali/ipHandle/pkg/common"
 	"go.uber.org/zap"
 	"io/ioutil"
 	"net/http"
-
-	"github.com/forever765/clickhouse_sinker_nali/ipHandle/pkg/common"
 )
 
 func QqwryDownload(filePath string) (data []byte, err error) {

@@ -1,13 +1,13 @@
 package util
 
 import (
+	"github.com/forever765/clickhouse_sinker_nali/ipHandle/pkg/common"
 	"go.uber.org/zap"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
 
-	"github.com/forever765/clickhouse_sinker_nali/ipHandle/pkg/common"
 	"github.com/saracen/go7z"
 )
 

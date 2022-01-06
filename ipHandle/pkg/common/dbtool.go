@@ -1,8 +1,8 @@
 package common
 
 import (
-	"github.com/forever765/clickhouse_sinker_nali/util"
 	"go.uber.org/zap"
+	"log"
 	"os"
 )
 
@@ -18,8 +18,10 @@ func ExistThenRemove(filePath string) {
 	if err == nil {
 		err = os.Remove(filePath)
 		if err != nil {
-			util.Logger.Fatal("旧文件删除失败", zap.Error(err))
-			os.Exit(1)
+			log.Fatal("旧文件删除失败", zap.Error(err))
+			//此处不能用util的logger，循环引入会导致编译报错
+			//util.Logger.Fatal("旧文件删除失败",zap.Error(err))
+			os.Exit(444)
 		}
 	}
 }
