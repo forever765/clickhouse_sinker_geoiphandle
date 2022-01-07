@@ -78,11 +78,11 @@ var (
 //	cfg	*config.Config
 //}
 //var h MyConsumerGroupHandler
-var cfg config.Config
+//var cfg config.Config
 
 func initCmdOptions() {
 	// 1. Set options to default value.
-	util.Logger.Info("",zap.String("",string(cfg.SinkerListenPort)), zap.String("",cfg.LogLevel),zap.String("",cfg.LogPaths))
+	//util.Logger.Info("",zap.String("",string(cfg.SinkerListenPort)), zap.String("",cfg.LogLevel),zap.String("",cfg.LogPaths))
 	cmdOps = CmdOptions{
 		ShowVer:          false,
 		// 会报错空指针，未知原因

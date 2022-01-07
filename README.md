@@ -27,3 +27,7 @@ Clickhouse_Sinker_Nali
 configuration new option "geoipHandle" under the "task" field, default value is false
 
 `"geoipHandle": true`
+
+## Note
+1. Sinker listen port and log path setting: `cmdOps on cmd/clickhouse_sinker_nali/main.go`
+2. GeoIP Database file download path: `HomePath on ipHandle/constant/path.go`
