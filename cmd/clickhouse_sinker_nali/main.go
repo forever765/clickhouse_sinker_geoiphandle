@@ -60,12 +60,6 @@ type CmdOptions struct {
 	NacosServiceName string // participate in assignment management if not empty
 }
 
-type MyConsumerGroupHandler struct {
-	taskCfg   *config.TaskConfig
-	masterCfg	*config.Config
-}
-var h MyConsumerGroupHandler
-
 var (
 	//goreleaser fill following info per https://goreleaser.com/customization/build/.
 	version = "None"
@@ -80,13 +74,21 @@ var (
 	runner      *Sinker
 )
 
+//type MyConsumerGroupHandler struct {
+//	cfg	*config.Config
+//}
+//var h MyConsumerGroupHandler
+var cfg config.Config
+
 func initCmdOptions() {
 	// 1. Set options to default value.
+	util.Logger.Info("",zap.String("",string(cfg.SinkerListenPort)), zap.String("",cfg.LogLevel),zap.String("",cfg.LogPaths))
 	cmdOps = CmdOptions{
 		ShowVer:          false,
-		//HTTPPort:         h.masterCfg.SinkerListenPort,
-		//LogLevel:         h.masterCfg.LogLevel,
-		//LogPaths:         h.masterCfg.LogPaths,
+		// 会报错空指针，未知原因
+		//HTTPPort:         cfg.SinkerListenPort,
+		//LogLevel:         cfg.LogLevel,
+		//LogPaths:         cfg.LogPaths,
 		HTTPPort:         21888,
 		LogLevel:         "debug",
 		LogPaths:         "stdout,/var/log/ch_sinker/clickhouse_sinker_nali.log",

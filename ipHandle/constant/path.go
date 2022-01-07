@@ -1,6 +1,7 @@
 package constant
 
 import (
+	"github.com/forever765/clickhouse_sinker_nali/config"
 	"log"
 	"os"
 	"path/filepath"
@@ -11,10 +12,12 @@ var (
 	HomePath string
 )
 
+var cfg config.Config
+
 // get it from config file
 func init() {
-	HomePath = os.Getenv("NALI_DB_HOME")
-	//HomePath = config
+	//HomePath = os.Getenv("NALI_DB_HOME")
+	HomePath = cfg.GeoipFilePath
 	if HomePath == "" {
 		// homeDir, err := os.UserHomeDir()
 		// homeDir, _ := os.UserHomeDir()

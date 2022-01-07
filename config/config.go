@@ -36,6 +36,7 @@ type Config struct {
 	LogLevel   string
 	LogPaths   string
 	SinkerListenPort int
+	GeoipFilePath	string
 }
 
 // KafkaConfig configuration parameters
