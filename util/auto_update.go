@@ -4,6 +4,7 @@ import (
 	"github.com/forever765/clickhouse_sinker_nali/ipHandle/constant"
 	"github.com/robfig/cron/v3"
 	"go.uber.org/zap"
+	"os/exec"
 	"path/filepath"
 	"time"
 )
@@ -30,5 +31,13 @@ func DoUpdate() {
 	Zxipv6wry_Download(ZXIPv6WryPath)
 	CdnDownload(CDNPath)
 	endTime := time.Now().UnixNano()
-	Logger.Info("Update Geoip database file done, ", zap.Float64("Elapsed time:", float64(endTime-startTime)/1000000))
+	Logger.Info("Update Geoip database file done, ", zap.Float64("Elapsed time (second):", float64(endTime-startTime)/1000000000))
+	Logger.Info("Restarting_Clickhouse Sinker_Nali")
+	restartMyself()
+
+}
+
+func restartMyself(){
+	cmd := exec.Command("/usr/bin/systemctl", "restart", "ch_sinker")
+	cmd.Run()
 }
