@@ -151,9 +151,6 @@ type TaskConfig struct {
 	TimeUnit      float64 `json:"timeUnit"`
 	GeoipHandle	bool
 	AutoUpdateGeoIPDB	string
-	LogLevel	string
-	LogPath		string
-	SinkerListenPort	int
 }
 
 type Assignment struct {
@@ -169,7 +166,6 @@ const (
 	maxFlushInterval          = 600
 	defaultFlushInterval      = 5
 	defaultGeoipHandle        = false
-	defaultAutoUpdateGeoIPDB  = ""
 	defaultTimeZone           = "Local"
 	defaultLogLevel           = "info"
 	defaultKerberosConfigPath = "/etc/krb5.conf"
@@ -296,9 +292,9 @@ func (cfg *Config) normallizeTask(taskCfg *TaskConfig) (err error) {
 	if !taskCfg.GeoipHandle {
 		taskCfg.GeoipHandle = defaultGeoipHandle
 	}
-	// if AutoUpdateGeoIPDB not set, don't add cron job
-	if taskCfg.AutoUpdateGeoIPDB == "" {
-		taskCfg.AutoUpdateGeoIPDB = defaultAutoUpdateGeoIPDB
+	// Auto update geoip db file cron job
+	if taskCfg.AutoUpdateGeoIPDB != "" {
+		util.AddUpdateCronTask(taskCfg.AutoUpdateGeoIPDB)
 	}
 	return
 }

@@ -16,19 +16,19 @@ var (
 
 // Auto update geoip database file every day
 func AddUpdateCronTask(JobInterval string) {
-	Logger.Info("9999")
 	c := cron.New()
 	c.AddFunc(JobInterval, DoUpdate)
 	c.Start()
-	Logger.Info("Add cron job: auto update geoip db file succeed, time interval: ", zap.String("",JobInterval))
+	Logger.Info("Add cron job: auto update geoip db file succeed, ", zap.String("time interval: ",JobInterval))
 	time.After(time.Hour * 168)
 }
 
 func DoUpdate() {
+	Logger.Info("Start update Geoip database...")
 	startTime := time.Now().UnixNano()
 	QqwryDownload(QQWryPath)
 	Zxipv6wry_Download(ZXIPv6WryPath)
 	CdnDownload(CDNPath)
 	endTime := time.Now().UnixNano()
-	Logger.Info("Update geoip db done, Elapsed time: ", zap.Float64("", float64(endTime-startTime)/1000000))
+	Logger.Info("Update Geoip database file done, ", zap.Float64("Elapsed time:", float64(endTime-startTime)/1000000))
 }

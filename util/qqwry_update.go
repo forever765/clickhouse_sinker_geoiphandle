@@ -13,13 +13,13 @@ import (
 func QqwryDownload(filePath string) (data []byte, err error) {
 	data, err = qqwryGetData()
 	if err != nil {
-		Logger.Info("纯真IP库下载失败，请手动下载解压后保存到本地: ", zap.String("",filePath))
+		Logger.Info("纯真IPv4库下载失败，请手动下载解压后保存到本地: ", zap.String("",filePath))
 		Logger.Info("\n下载链接： https://qqwry.mirror.noc.one/qqwry.rar")
 		return
 	}
 	common.ExistThenRemove(filePath)
 	if err = ioutil.WriteFile(filePath, data, 0644); err == nil {
-		Logger.Info("已将最新的 纯真IP库 保存到本地: ", zap.String("",filePath))
+		Logger.Info("纯真IPv4库更新完毕，", zap.String("本地路径: ",filePath))
 	}
 	return
 }

@@ -17,7 +17,7 @@ func CdnDownload(filePath string) (data []byte, err error) {
 
 	common.ExistThenRemove(filePath)
 	if err := ioutil.WriteFile(filePath, data, 0644); err == nil {
-		Logger.Info("已将最新的 CDN数据库 保存到本地: ", zap.String("", filePath))
+		Logger.Info("CDN数据库更新完毕，", zap.String("本地路径: ", filePath))
 	}
 	return
 }
