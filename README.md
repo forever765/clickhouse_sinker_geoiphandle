@@ -12,10 +12,10 @@ Clickhouse_Sinker_Nali
 - #### Import robfig/cron/v3 package to auto update geoip database file every day
 
 ## Processing flow
-##### Pmacctd --> Kafka --> ClickHouse_Sinker_nali
-1. Get message from Kafka
+##### Pmacctd --> Kafka --> ClickHouse_Sinker_nali --> Clickhouse
+1. Get messages from Kafka
 2. Get ip_src and ip_dst geo info from Nali module
-3. Reduce unknown on class field
+3. Reduce unknown on class field (serviceMap replace unknown)
 4. Add "loc_src/loc_dst/isp_src/isp_dst" field to message
 5. Write messages to Clickhouse
 
@@ -24,10 +24,13 @@ Clickhouse_Sinker_Nali
 `make build`
 
 ## Quick Start
-configuration new option "geoipHandle" under the "task" field, default value is false
+configuration new option "geoipHandle" & "autoUpdateGeoIPDB" under the "task" field.  
+1. geoipHandle: use or not handle geoip info.
+2. autoUpdateGeoIPDB: set auto update NALI geoip db file cronjob interval time.
 
-`"geoipHandle": true`
+`"geoipHandle": true`  
+`"autoUpdateGeoIPDB": "0 3 * * *"`
 
 ## Note
 1. Sinker listen port and log path setting: `cmdOps on cmd/clickhouse_sinker_nali/main.go`
-2. GeoIP Database file download path: `HomePath on ipHandle/constant/path.go`
+2. GeoIP Database file download path: ` variable "HomePath" on ipHandle/constant/path.go`
