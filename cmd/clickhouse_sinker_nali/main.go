@@ -72,6 +72,7 @@ var (
 	httpAddr    string
 	httpMetrics = promhttp.Handler()
 	runner      *Sinker
+
 )
 
 //type MyConsumerGroupHandler struct {

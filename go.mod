@@ -23,7 +23,7 @@ require (
 	github.com/saracen/go7z v0.0.0-20191010121135-9c09b6bd7fda
 	github.com/segmentio/kafka-go v0.4.22
 	github.com/stretchr/testify v1.7.0
-	github.com/tidwall/gjson v1.10.2
+	github.com/tidwall/gjson v1.12.1
 	github.com/troian/healthcheck v0.1.4-0.20200127040058-c373fb6a0dc1
 	github.com/valyala/fastjson v1.6.3
 	github.com/xdg-go/scram v1.0.2
@@ -76,6 +76,7 @@ require (
 	github.com/streadway/amqp v0.0.0-20200108173154-1c71cc93ed71 // indirect
 	github.com/tidwall/match v1.1.1 // indirect
 	github.com/tidwall/pretty v1.2.0 // indirect
+	github.com/tidwall/sjson v1.2.4 // indirect
 	github.com/toolkits/concurrent v0.0.0-20150624120057-a4371d70e3e3 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ulikunitz/xz v0.5.10 // indirect
