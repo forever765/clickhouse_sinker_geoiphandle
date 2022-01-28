@@ -11618,44 +11618,24 @@ func SearchIP(raw []byte) []byte {
 		if err2 != nil {
 			util.Logger.Error("修改json失败：", zap.Error(err2))
 		}
-		//json_raw.SetString(loc).At("loc_" + obj)
-		//json_raw.SetString(isp).At("isp_" + obj)
 	}
 	return result
-	// FinalResult := json_raw.MustMarshalString()
 }
 
-// Unknown/Unknown to Unknown
-// Unknown/XXX to XXX
+// 处理所有unknown，删除冗余字段
 func ReduceUnknown(json_raw []byte) []byte {
 	result := gjson.GetManyBytes(json_raw, "class", "ip_proto", "port_src", "port_dst")
-	util.Logger.Info(fmt.Sprintf("ReduceUnknown 读取的result：%v, %v, %v, %v", result[0].String(), result[1].String(), result[2].String(), result[3].String()))
 	class := result[0].String()
 	if class == "Unknown/Unknown" {
-		//ip_proto, err := json_raw.Get("ip_proto")
-		//ip_proto := gjson.GetMany(json_raw, "ip_proto")
-		//if err != nil {
-		//	return json_raw
-		//}
-		//ip_proto, err := json_raw.Get("ip_proto")
-		//if err != nil {
-		//	return json_raw
-		//}
-
 		// 用ip_proto和端口去匹配服务名称
 		keySrc := result[1].String() + ":" + result[2].String()
 		keyDst := result[1].String() + ":" + result[3].String()
 		if resultSrc := serviceMap[keySrc]; resultSrc != ""{
-			util.Logger.Info("src old: ", zap.String("old: ", class))
 			class = strings.Replace(class, "Unknown/Unknown", resultSrc, -1)
-			util.Logger.Info("src new: ", zap.String("new: ", class))
 		}
 		if resultDst := serviceMap[keyDst]; resultDst != ""{
-			util.Logger.Info("dst old: ", zap.String("old: ", class))
 			class = strings.Replace(class, "Unknown/Unknown", resultDst, -1)
-			util.Logger.Info("dst new: ", zap.String("new: ", class))
 		}
-		//class = strings.Replace(class, "Unknown/Unknown", "Unknown", -1)
 	} else if strings.Contains(class, "/") { //删除冗余字段（HTTP/HTTP），只保留第一个结果
 		ClassList := strings.Split(class, "/")
 		if ClassList[0] != ClassList[1] {
@@ -11666,21 +11646,16 @@ func ReduceUnknown(json_raw []byte) []byte {
 	if err != nil {
 		util.Logger.Error("修改json失败：", zap.Error(err))
 	}
-	//json_raw.SetString(class).At("class")
 	return finalResult
 }
 
 func HandleMsg(json []byte) []byte {
-	// Unmarshal JSON
-	//json_raw, err := jsonvalue.UnmarshalString(string(json))
 	GeoDoneResult := SearchIP(json)
 	ClassDone := ReduceUnknown(GeoDoneResult)
-	//FinalResult := ClassDone.MustMarshalString()
 	return ClassDone
 }
 
 func (h MyConsumerGroupHandler) ConsumeClaim(sess sarama.ConsumerGroupSession, claim sarama.ConsumerGroupClaim) error {
-	// util.Logger.Info(fmt.Sprintf("GeoipHandle status: %v", h.k.taskCfg.GeoipHandle))
 	for msg := range claim.Messages() {
 		// if need handle geoip
 		if h.k.taskCfg.GeoipHandle {

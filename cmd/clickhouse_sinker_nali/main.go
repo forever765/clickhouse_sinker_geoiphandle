@@ -75,12 +75,6 @@ var (
 
 )
 
-//type MyConsumerGroupHandler struct {
-//	cfg	*config.Config
-//}
-//var h MyConsumerGroupHandler
-//var cfg config.Config
-
 func initCmdOptions() {
 	// 1. Set options to default value.
 	//util.Logger.Info("",zap.String("",string(cfg.SinkerListenPort)), zap.String("",cfg.LogLevel),zap.String("",cfg.LogPaths))
