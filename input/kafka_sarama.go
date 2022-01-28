@@ -11643,8 +11643,8 @@ func ReduceUnknown(json_raw []byte) []byte {
 		//}
 
 		// 用ip_proto和端口去匹配服务名称
-		keySrc := result[1].String() + ":" + result[3].String()
-		keyDst := result[1].String() + ":" + result[4].String()
+		keySrc := result[1].String() + ":" + result[2].String()
+		keyDst := result[1].String() + ":" + result[3].String()
 		if resultSrc := serviceMap[keySrc]; resultSrc != ""{
 			util.Logger.Info("src old: ", zap.String("old: ", class))
 			class = strings.Replace(class, "Unknown/Unknown", resultSrc, -1)
