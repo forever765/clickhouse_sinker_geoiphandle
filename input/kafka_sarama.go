@@ -11646,10 +11646,14 @@ func ReduceUnknown(json_raw []byte) []byte {
 		keySrc := result[1].String() + ":" + result[3].String()
 		keyDst := result[1].String() + ":" + result[4].String()
 		if resultSrc := serviceMap[keySrc]; resultSrc != ""{
+			util.Logger.Info("src old: ", zap.String("old: ", class))
 			class = strings.Replace(class, "Unknown/Unknown", resultSrc, -1)
+			util.Logger.Info("src new: ", zap.String("new: ", class))
 		}
 		if resultDst := serviceMap[keyDst]; resultDst != ""{
+			util.Logger.Info("dst old: ", zap.String("old: ", class))
 			class = strings.Replace(class, "Unknown/Unknown", resultDst, -1)
+			util.Logger.Info("dst new: ", zap.String("new: ", class))
 		}
 		//class = strings.Replace(class, "Unknown/Unknown", "Unknown", -1)
 	} else if strings.Contains(class, "/") { //删除冗余字段（HTTP/HTTP），只保留第一个结果
