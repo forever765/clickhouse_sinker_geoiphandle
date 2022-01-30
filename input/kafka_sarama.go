@@ -11568,62 +11568,79 @@ func (h MyConsumerGroupHandler) Cleanup(_ sarama.ConsumerGroupSession) error {
 }
 
 func SearchIP(raw []byte) []byte {
-	var ready1,result []byte
-	var err, err2 error
+	var result []byte
 	// handle ip_src and ip_dst
-	objs := []string{"src", "dst"}
+	types := [2]string{"src", "dst"}
 	// 遍历 ip_src 和 ip_dst
-	for _, obj := range objs {
+	for _, obj := range types {
+		var readyResult []byte
+		var err, err2 error
 		ip := gjson.GetBytes(raw, "ip_" + obj)
-		naliRsp := entity.ParseIP(ip.String()).String()
-
-		naliRsp = strings.TrimRight(naliRsp, "]")
-		PureResult := strings.Split(naliRsp, "[")
+		// naliRspRaw example: 192.168.123.1[局域网 对方和您在同一内部网]   or   164.90.236.112[美国 ]
+		naliRspRaw := entity.ParseIP(ip.String()).String()
+		naliRsp_1 := strings.TrimRight(naliRspRaw, "]")
+		// 清理可能存在的 ] 符号
+		naliRsp_2 := strings.TrimRight(naliRsp_1, "]")
+		// PureResult example: ["119.147.3.230","广东省深圳市 腾讯云] "]
+		PureResult := strings.Split(naliRsp_2, "[")
 
 		var PureResultList []string
-		// PureResult  --->   [220.166.187.228 四川省资阳市简阳市]
+		// 提取地理位置，PureResult  --->   [220.166.187.228 四川省资阳市简阳市]
 		if len(PureResult) > 1 {
 			PureResultList = strings.Fields(PureResult[1])
 		}
-		LPR := len(PureResultList)
-		loc := "Unknown"
-		isp := "Unknown"
 
+		var loc = "未知"
+		var isp = "未知"
+		LPR := len(PureResultList)
 		if LPR == 0 {
 			// if nali return null result, default value is "Unknown"
+			//util.Logger.Warn("Nali返回空结果：", zap.Any("结果为：", PureResultList))
 		} else if LPR == 1 {
 			// only have location
 			loc = PureResultList[0]
 		} else if LPR > 1 {
-			// 国外的地名和isp可能有空格
+			// 国外的地名和isp可能有空格，也有可能不存在运营商
 			loc = PureResultList[0]
-			isp = strings.Join(PureResultList[1:], "")
+			if PureResultList[1] == "]" || PureResultList[1] == " " {
+				isp = PureResultList[0]
+			} else {
+				isp = strings.Join(PureResultList[1:], "")
+			}
 		} else {
 			util.Logger.Warn(fmt.Sprintf("nali return unknown data: %s, 个数：%v", PureResultList, LPR))
 		}
-		// Replace ... to 局域网
+
+		// 清理可能存在的 ] 符号
+		isp = strings.TrimRight(isp, "]")
+		// Replace 同一内部网 to 局域网
 		if strings.Contains(loc, "同一内部网") || strings.Contains(isp, "同一内部网") {
 			loc = "局域网"
 			isp = "局域网"
 		}
-		if strings.Contains(isp, "]") {
-			isp = strings.TrimRight(isp, "]")
-			// fmt.Println("有漏网之鱼, ] replaced!")
-		}
 
-		if ready1,err = sjson.SetBytes(raw, "loc_" + obj, loc); err != nil {
+		// raw example: {"event_type": "purge", "class": "Unknown/TLS", "etype": "800", "ip_src": "101.91.37.19", "ip_dst": "192.168.123.66", "port_src": 443, "port_dst": 8830, "ip_proto": "tcp", "timestamp_min": "2022-01-29 08:20:36.818873", "timestamp_max": "2022-01-29 08:20:37.000000", "stamp_inserted": "2022-01-29 08:15:50", "stamp_updated": "2022-01-29 08:20:41", "packets": 1, "bytes": 40, "writer_id": "default_kafka/16950"}
+		sourceRecord := raw
+		if obj == "dst" {
+			sourceRecord = result
+		}
+		if readyResult,err = sjson.SetBytes(sourceRecord, "loc_" + obj, loc); err != nil {
 			util.Logger.Error("修改json失败：", zap.Error(err))
 		}
-		result,err2 = sjson.SetBytes(ready1, "isp_" + obj, isp)
+
+		result,err2 = sjson.SetBytes(readyResult, "isp_" + obj, isp)
 		if err2 != nil {
 			util.Logger.Error("修改json失败：", zap.Error(err2))
 		}
+		// 清理临时变量
+		readyResult = nil
+		// result example: {"event_type": "purge", "class": "Unknown/DNS", "etype": "800", "ip_src": "192.168.123.205", "ip_dst": "192.168.123.1", "port_src": 46843, "port_dst": 53, "ip_proto": "udp", "timestamp_min": "2022-01-29 19:11:44.722008", "timestamp_max": "2022-01-29 19:11:45.000000", "stamp_inserted": "2022-01-29 19:10:50", "stamp_updated": "2022-01-29 19:11:51", "packets": 2, "bytes": 120, "writer_id": "default_kafka/7924","loc_src":"局域网","isp_src":"局域网"}
 	}
 	return result
 }
 
 // 处理所有unknown，删除冗余字段
-func ReduceUnknown(json_raw []byte) []byte {
+func ReplaceUnknown(json_raw []byte) []byte {
 	result := gjson.GetManyBytes(json_raw, "class", "ip_proto", "port_src", "port_dst")
 	class := result[0].String()
 	if class == "Unknown/Unknown" {
@@ -11651,7 +11668,7 @@ func ReduceUnknown(json_raw []byte) []byte {
 
 func HandleMsg(json []byte) []byte {
 	GeoDoneResult := SearchIP(json)
-	ClassDone := ReduceUnknown(GeoDoneResult)
+	ClassDone := ReplaceUnknown(GeoDoneResult)
 	return ClassDone
 }
 
