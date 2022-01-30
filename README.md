@@ -8,7 +8,7 @@ Clickhouse_Sinker_Nali
 <br>
 
 - #### Clickhouse_Sinker_Nali based on [Clickhouse_Sinker v2.2.0](https://github.com/forever765/clickhouse_sinker)
-- #### GeoIP information provide from [Nali v0.3.5](https://github.com/zu1k/nali)
+- #### GeoIP information provide from [Nali v0.3.4](https://github.com/zu1k/nali)
 - #### Import robfig/cron/v3 package to auto update geoip database file every day
 
 ## Processing flow
