@@ -20,8 +20,8 @@ Clickhouse_Sinker_Nali
 5. Write messages to Clickhouse
 
 ## Build && Run
-`go get -u github.com/forever765/clickhouse_sinker_nali/...`
-`make build`
+1. `go get -u github.com/forever765/clickhouse_sinker_nali/...`
+2. `make build`
 
 ## Quick Start
 configuration new option "geoipHandle" & "autoUpdateGeoIPDB" under the "task" field.  
