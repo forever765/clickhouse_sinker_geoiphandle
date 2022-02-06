@@ -11644,7 +11644,8 @@ func ReplaceUnknown(json_raw []byte) []byte {
 	result := gjson.GetManyBytes(json_raw, "class", "ip_proto", "port_src", "port_dst")
 	class := result[0].String()
 	if class == "Unknown/Unknown" {
-		// 用ip_proto和端口去匹配服务名称
+		// 用ip_proto和端口去匹配服务名称，先填充默认值（确实无该端口资料的情况）
+		class = "Unknown"
 		keySrc := result[1].String() + ":" + result[2].String()
 		keyDst := result[1].String() + ":" + result[3].String()
 		if resultSrc := serviceMap[keySrc]; resultSrc != ""{
